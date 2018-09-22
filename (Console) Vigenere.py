@@ -1,3 +1,4 @@
+#Alex Scorza
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 def pos(letter1,letter2):
     return alphabet[(alphabet.index(letter1)+alphabet.index(letter2))%len(alphabet)]

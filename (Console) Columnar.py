@@ -1,3 +1,4 @@
+#Alex Scorza
 mode = "1"
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 

@@ -1,3 +1,4 @@
+#Alex Scorza
 words = ["ifmmp", "uifsf", "ipx", "bsf", "zpv", "epjoh", "upebz","aoxxizzyy"]
 def compare(search):
     numbers = []
