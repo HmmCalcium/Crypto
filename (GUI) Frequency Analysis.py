@@ -1,5 +1,6 @@
 #Alex Scorza September 2018
 #https://www.karamasoft.com/ultimatespell/samples/longtext/longtext.aspx
+#The hardware gremlin has arrived
 import tkinter as tk
 import tkinter.scrolledtext as tkst
 from re import match
@@ -9,11 +10,11 @@ bg = "white"
 style = {"bg":bg,"font":font}
 
 alphabet = "abcdefghijklmnopqrstuvwxyz"
-order = "etaoinshrdlcumwfgypbvkjxqz" #Most to least frequent
-digrahps = ["the","he","an","in","er","on","re","ed","nd","ha","at","en"]
-trigraphs = ["the","and","tha","ent","ion","tio","for","nce","has","nce","tis","oft","men"]
+mono = "etaoinshrdlcumwfgypbvkjxqz" #Most to least frequent
+di = ["th","he","an","in","er","on","re","ed","nd","ha","at","en"]
+tri = ["the","and","tha","ent","ion","tio","for","nce","has","nce","tis","oft","men"]
 
-changed = list(order) #Has to swap letters, must me mutable
+changed = list(mono) #Has to swap letters, must me mutable
 
 conversions = lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] #Call to update whenever
 letter = lambda x: match(r"[a-zA-z]",x) != None #Is letter
@@ -38,7 +39,7 @@ def assign(arr): #Dictionary with each letter's frequency
     new = [""]*26
     for i in range(26):
         hi = arr.index(max(arr))
-        new[hi] = order[i]
+        new[hi] = mono[i]
         arr[hi] = -1 #Won't be reused but deleting will cause index error
     return new
 
@@ -139,6 +140,22 @@ class Main(tk.Tk):
         
         self.set_letters(conversions(),self.converts)
 
+        self.select = tk.Button(text = "Selecting/Test Feature",command = lambda: self.highlight(self.enter,"2.6","2.11"))
+        self.select.grid(row = 3,column = 4)
+        ##self.enter.tag_configure("warning",background = "yellow")
+        ##self.enter.insert("1.0","Lorem ipsum dolor sit amet")
+        ##self.enter.tag_add("warning","1.6","1.11")
+
+    def highlight(self,widget,index1,index2):
+        widget.tag_configure("selected",background = "yellow")
+        widget.tag_add("selected",index1,index2)
+        lines = widget.get("1.0","end").split("\n")
+        print(lines)
+        for i in range(len(lines)):
+            print(lines[i])
+            lines[i] = tuple(keep(lines[i],alphabet+alphabet.upper()+" ").split())
+        print(lines)
+        
     def get_select(self,event):
         widget = event.widget
         index = widget.curselection()
@@ -187,6 +204,7 @@ class Main(tk.Tk):
         changed[changed.index(char1)] = changed[changed.index(char2)]
         changed[char2_index] = char1
         self.set_letters(conversions(),self.converts)
-
+        self.decrypt_current()
+    
 if __name__ == "__main__":
     app = Main()
