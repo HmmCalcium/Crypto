@@ -1,6 +1,18 @@
-#Alex Scorza September 2018
-#https://www.karamasoft.com/ultimatespell/samples/longtext/longtext.aspx
-#The hardware gremlin has arrived
+"""
+Alex Scorza September 2018
+http://www.randomtextgenerator.com/
+
+Made for the cipher challenge but feel free to use all you lovely people.
+This program decrypts substitution ciphers by finding the frequencies of letters.
+You can switch words once it's done and search for words.
+It returns the answer keeping punctuation, spaces and which letters are capitals.
+
+Upcoming features:
+-digraphs
+-trigraphs
+-highlighting words
+"""
+
 import tkinter as tk
 import tkinter.scrolledtext as tkst
 from re import match
@@ -9,27 +21,35 @@ font = ("Consolas",10)
 bg = "white"
 style = {"bg":bg,"font":font}
 
-alphabet = "abcdefghijklmnopqrstuvwxyz"
-mono = "etaoinshrdlcumwfgypbvkjxqz" #Most to least frequent
-di = ["th","he","an","in","er","on","re","ed","nd","ha","at","en"]
-tri = ["the","and","tha","ent","ion","tio","for","nce","has","nce","tis","oft","men"]
+alphabet = "abcdefghijklmnopqrstuvwxyz" #Doesn't need to be a tuple
+mono = "etaoinshrdlcumwfgypbvkjxqz" #Doesn't need to be a tuple
+di = ("th","he","an","in","er","on","re","ed","nd","ha","at","en")
+tri = ("the","and","tha","ent","ion","tio","for","nce","has","nce","tis","oft","men")
 
-changed = list(mono) #Has to swap letters, must me mutable
+changed = list(mono) #Has to swap letters, must me mutable, this is default if no letters are entered
 
 conversions = lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] #Call to update whenever
 letter = lambda x: match(r"[a-zA-z]",x) != None #Is letter
 keep = lambda arr1,arr2: "".join([x for x in arr1 if x in arr2])
 
-def set_to_letter(string): #Widget to disable
-    if string == "":
-        return ""
-    string = string[-1]
+def find_pos(line_list,find): #Find row and column of words: (0,10) would become "1.10"
+    result = [] #2D
+    for line_num in range(len(line_list)):
+        for letter_pos in range(len(line_list[line_num])):
+            if line_list[line_num][letter_pos:letter_pos+len(find)] == find:
+                result += (("{}.{}".format(line_num+1,letter_pos),"{}.{}".format(line_num+1,letter_pos+len(find))),)
+    return result
+
+def set_to_letter(string):
+    if string == "": 
+        return "" #Else, next line will cause error
+    string = string[-1] #When you type another letter, set to last for ease of use
     if string[0].lower() not in alphabet:
-        string = ""
+        string = "" #Only allowed if letter
     return string.lower()
 
 def amount(string): #Dictionary with numbers of each letter
-    amount = [0]*26
+    amount = [0]*26 #26*zero appearances
     for el in string:
         if el.lower() in alphabet:
             amount[alphabet.index(el.lower())] += 1
@@ -38,19 +58,19 @@ def amount(string): #Dictionary with numbers of each letter
 def assign(arr): #Dictionary with each letter's frequency
     new = [""]*26
     for i in range(26):
-        hi = arr.index(max(arr))
-        new[hi] = mono[i]
+        hi = arr.index(max(arr)) #position of highest number
+        new[hi] = mono[i] #Set highest to highest remaining in most frequent letters
         arr[hi] = -1 #Won't be reused but deleting will cause index error
     return new
 
-def encipher(text):
+def encipher(text): #Impure - required 'changed'
     answer = ""
     for el in text:
         if el == "\n":
             answer += el
         elif el in alphabet:
             answer += changed[alphabet.index(el)]
-        elif answer in alphabet.upper():
+        elif el in alphabet.upper():
             answer += changed[alphabet.index(el.lower())].upper()
         else:
             answer += el
@@ -62,8 +82,11 @@ def decipher(text):
         answer += alphabet[changed.index(el)]
     return answer
 
-def compare(search): #Set to int array
-    search = search.lower()
+def compare(search): #Allows you to find if one word can be enciphered to another with substitution
+    #This makes a word into a tuple of integers - if a letter has not appeared,
+    #it adds its position to numbers. Else, the position of the first
+    #appearance of that letter: "morning" -> (0,1,2,3,4,3,6) - 'n' appears twice
+    search = keep(search.lower(),alphabet)
     numbers = [] #Answer
     done = [] #Leters that have already appeared
     for x in range(len(search)):
@@ -72,16 +95,17 @@ def compare(search): #Set to int array
         else:
             numbers += [x]
         done.append(search[x])
-    return("".join([str(x) for x in numbers]))
+    return tuple(numbers)
 
 def find_matches(text,word): #Find matches of word to words in the text
     result = []
     find = compare(word)
+    text = text.replace("\n"," ") #Remove newlines and put a space -> one line
     text = keep(text,alphabet+alphabet.upper()+" ").split()
     for x in text:
         if compare(x) == find and not x in result: #No duplicates
-            result += [x]
-    return sorted(result)
+            result += [x] #If not already there, add
+    return sorted(result) #Makes it easier to navigate
 
 class Main(tk.Tk):
     def __init__(self):
@@ -140,28 +164,38 @@ class Main(tk.Tk):
         
         self.set_letters(conversions(),self.converts)
 
-        self.select = tk.Button(text = "Selecting/Test Feature",command = lambda: self.highlight(self.enter,"2.6","2.11"))
+        self.to_find = tk.StringVar(self)
+        self.to_find.trace("w",self.trace_finder)
+        self.ctrlf = tk.Entry(**style,textvariable = self.to_find)
+        self.ctrlf.grid(row = 5,column = 4)
+        self.select = tk.Button(text = "Select words",command = lambda: [self.highlight_words(self.enter,"hi")])
         self.select.grid(row = 3,column = 4)
-        ##self.enter.tag_configure("warning",background = "yellow")
-        ##self.enter.insert("1.0","Lorem ipsum dolor sit amet")
-        ##self.enter.tag_add("warning","1.6","1.11")
 
-    def highlight(self,widget,index1,index2):
+        global changed
+
+    def trace_finder(self,*args):
+        self.to_find.set(self.to_find.get().lower())
+##        print(self.to_find.get())
+        self.highlight_words(self.enter,self.to_find.get())
+        self.highlight_words(self.answer,self.to_find.get())
+    
+    def highlight_words(self,widget,word): #Find all points to highlight and highlight them
+        widget.tag_delete("selected")
         widget.tag_configure("selected",background = "yellow")
+        positions = find_pos(widget.get("1.0","end").split("\n"),word)
+##        print(positions)
+        for pos in positions:
+            self.highlight(widget,*pos)
+        
+    def highlight(self,widget,index1 = "1.0",index2 = "1.0"): #Highlight between two points
         widget.tag_add("selected",index1,index2)
-        lines = widget.get("1.0","end").split("\n")
-        print(lines)
-        for i in range(len(lines)):
-            print(lines[i])
-            lines[i] = tuple(keep(lines[i],alphabet+alphabet.upper()+" ").split())
-        print(lines)
         
     def get_select(self,event):
         widget = event.widget
         index = widget.curselection()
         if len(index) == 1:
             val = widget.get(index).lower()
-            ##print(self.word_search.get()[0],encipher(val)[0])
+##            print(self.word_search.get()[0],encipher(val)[0])
             for i in range(len(val)):
                 self.switch(self.word_search.get()[i],encipher(val)[i])
             self.decrypt_current()
@@ -179,7 +213,7 @@ class Main(tk.Tk):
         self.answer.insert("end",value)
     
     def set_change(self,plain_txt):
-        global changed
+##        global changed
         changed = assign(amount(plain_txt))
         self.set_answer(encipher(plain_txt))
         self.set_letters(conversions(),self.converts)
