@@ -1,14 +1,13 @@
 This is a guide to the frequency analysis program in this repository.
 
-**SCROLLEDTEXT BOXES**
+**SCROLLEDTEXT BOXES:**
 
 The top box will be referred to as *entry* and the bottom as *answer*
 Text can be entered into both text boxes, although it is pointless to do it into the bottom one.
 After typing, click the 'Monographs' button. If you edit the text, click 'Decrypt Using Current' to update it.
 Currently, you can't use the 'Digraphs' and 'Trigraphs' buttons. I will add these if I can be bothered.
 
-
-**SWITCHING LETTERS**
+**SWITCHING LETTERS:**
 
 Letters can be entered into the two boxes. The 'switch' button will enable when both have a letter.
 IMPORTANT: the letters entered will correspond to letters in the deciphered text/column 2 in the alphabet listbox.
@@ -17,8 +16,7 @@ This only allows letters. It will delete the character if it is not a letter.
 It will delete all letters except for the last one, so of you type a letter after one already there, it will keep the last one.
 When you switch, the 'decrypt using current' button will be invoked and both letters will be switched.
 
-
-**ENTERING A WORD**
+**ENTERING A WORD:**
 
 A word may be entered. It is not case-sensetive.
 All words that could be enciphered to this that appear in the entry scrolledtext are listed.
@@ -26,8 +24,7 @@ It is in alphabetical order and retains the case when displayed.
 Simply click on the word that you want to use and it will switch all of the appropriate letters.
 The word you enter should be an english word to find possible matches.
 
-
-**STRING/REGULAR EXPRESSION MATCHING**
+**STRING/REGULAR EXPRESSION MATCHING:**
 
 The instruction will say 'Enter a string to match' or 'Enter a regexp to match'.
 The checkbox below saying 'Use regular expressions?' will switch between these two.
