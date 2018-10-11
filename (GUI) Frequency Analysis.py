@@ -10,8 +10,6 @@ It returns the answer keeping punctuation, spaces and which letters are capitals
 Upcoming features:
 -digraphs
 -trigraphs
--highlighting words from entry to encoded in answer and vice versa
--decode/encode singe words
 """
 
 import tkinter as tk
@@ -33,27 +31,31 @@ changed = list(mono) #Has to swap letters, must me mutable, this is default if n
 conversions = lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] #Call to update whenever
 letter = lambda x: re.match(r"^[a-zA-z]$",x) != None #Is letter
 keep = lambda arr1,arr2: "".join([x for x in arr1 if x in arr2])
-def regex_pos(regex,string):
-    if regex == "":
+
+def regex_pos(find,string,mode): #'find' can be string or regexp. mode = 0: string, 1: regexp
+    if find == "":
         return []
     else:
-        return [x.span() for x in re.compile(regex).finditer(string)]
+        if mode == 0:
+            return [(x,x+len(find)) for x in range(len(string)) if string[x:x+len(find)] == find] #Index string positions
+        else:
+            return [x.span() for x in re.compile(find).finditer(string)]
+            #Index positions were regexp matches - span() is start() and end() in a tuple
 
 def get(scrolled_text):
         return scrolled_text.get("1.0","end")
 
-def _find_pos(line_list,find): #Find row and column of words: (0,10) would become "1.10"
-    result = [] #2D
-    for line_num in range(len(line_list)):
-        for letter_pos in range(len(line_list[line_num])):
-            if line_list[line_num][letter_pos:letter_pos+len(find)] == find:
-                result += (("{}.{}".format(line_num+1,letter_pos),"{}.{}".format(line_num+1,letter_pos+len(find))),)
-    return result
+def is_regex(string): #If vaild regexp
+    try:
+        re.match(string,"Any Old String")
+        return True
+    except:
+        return False
 
-def find_pos(line_list,regex): #line_list example: ("hello there","howdy parter")
+def find_pos(line_list,regex,mode): #line_list example: ("hello there","howdy parter")
     result = []
     for line_num in range(len(line_list)):
-        for letter_pos in regex_pos(regex,line_list[line_num]): #example of letter_pos: (3,6), starting and finishing index
+        for letter_pos in regex_pos(regex,line_list[line_num],mode): #example of letter_pos: (3,6), starting and finishing index
             result += (("{}.{}".format(line_num+1,letter_pos[0]),"{}.{}".format(line_num+1,letter_pos[1])),)
     return tuple(result)
 
@@ -83,9 +85,7 @@ def assign(arr): #Dictionary with each letter's frequency
 def encipher(text): #Impure - required 'changed'
     answer = ""
     for el in text:
-        if el == "\n":
-            answer += el
-        elif el in alphabet:
+        if el in alphabet:
             answer += changed[alphabet.index(el)]
         elif el in alphabet.upper():
             answer += changed[alphabet.index(el.lower())].upper()
@@ -96,7 +96,12 @@ def encipher(text): #Impure - required 'changed'
 def decipher(text):
     answer = ""
     for el in text:
-        answer += alphabet[changed.index(el)]
+        if el in alphabet:
+            answer += alphabet[changed.index(el)]
+        elif el in alphabet.upper():
+            answer += alphabet[changed.index(el.lower())].upper()
+        else:
+            answer += el
     return answer
 
 def compare(search): #Allows you to find if one word can be enciphered to another with substitution
@@ -128,16 +133,17 @@ class Main(tk.Tk):
     def __init__(self):
         super().__init__()
         self.config(bg = bg)
+        self.title("Frequency Analysis")
         
-        self.enter = tkst.ScrolledText(width = 66,height = 12,**style) #12 + 12 + (button height * 2) = 26
+        self.enter = tkst.ScrolledText(width = 70,height = 12,**style) #12 + 12 + (button height * 2) = 26
         self.enter.grid(row = 0,column = 0,columnspan = 3,sticky = "EW")
-        self.answer = tkst.ScrolledText(width = 66,height = 12,**style)
+        self.answer = tkst.ScrolledText(width = 70,height = 12,**style)
         self.answer.grid(row = 2,column = 0,columnspan = 3,sticky = "EW")
 
         self.buttons = tk.Frame(self)
         self.buttons.grid(row = 1,column = 0,columnspan = 3,sticky = "EW")
 
-        btn_width = 33
+        btn_width = 35
         btn_height = 1
         self.decrypt_c = tk.Button(self.buttons,text = "Decrypt Using Current",**style,width = btn_width,height=btn_height,command = self.decrypt_current)
         self.decrypt_c.grid(row = 0,column = 0,sticky = "EW")
@@ -149,9 +155,8 @@ class Main(tk.Tk):
         self.find.grid(row = 1,column = 1,sticky = "EW")
         
         tk.Label(**style,text = "Enter two letters below to switch them").grid(row = 4,column = 1,columnspan = 2,sticky = "EW")
-        tk.Message(text = """'Monographs': Find letter frequencies and attempt to decrypt (start with this)
-                            'Decrypt using current': Decrypt using current conversion (list box,left)""",
-                   **style,justify = "center",fg = "#464647"
+        tk.Message(text = """Made by Alex Scorza. This project is my work and my work only, but feel free to use it!""",
+                   **style,justify = "center",fg = "#464647",width = 200
                    ).grid(row = 4,column = 0,rowspan = 3)
         
         self.letter_var1 = tk.StringVar(self)
@@ -166,33 +171,40 @@ class Main(tk.Tk):
         self.converts = tk.Listbox(self,width = 10,**style)
         self.converts.grid(row = 0,column = 3,rowspan = 3,sticky = "NS")
 
-        tk.Label(text = "Enter a word to find: ",**style).grid(row = 0,column = 4,sticky = "NEW",columnspan = 2)
+        tk.Label(text = "Enter a word: ",**style).grid(row = 0,column = 4,sticky = "NEW",columnspan = 2)
         self.word_search = tk.StringVar(self)
         word_entry = tk.Entry(width = 17,textvariable = self.word_search,**style)
         word_entry.grid(row = 0,column = 4,sticky = "N",pady = 30)
-        tk.Button(text = "→",**style,width = 2,command = lambda: self.set_letters(find_matches(self.enter.get("1.0","end"),self.word_search.get()),self.possible)).grid(row = 0,column = 5,sticky = "NE",pady = 26)
+        tk.Button(text = "→",**style,width = 2,command = lambda: self.set_letters(find_matches(get(self.enter),self.word_search.get()),self.possible)).grid(row = 0,column = 5,sticky = "NE",pady = 26)
         
-        self.possible = tk.Listbox()
-        self.possible.grid(row = 0,rowspan = 5,column = 4,sticky = "NS",pady = 60)
+        self.possible = tk.Listbox(height = 22)
+        self.possible.grid(row = 0,rowspan = 5,column = 4,sticky = "NS",pady = 64)
         self.scrollbar = tk.Scrollbar(self)
-        self.scrollbar.grid(row = 0,rowspan = 4,column = 5,sticky = "NSW",pady = 60)
+        self.scrollbar.grid(row = 0,rowspan = 5,column = 5,sticky = "NSW",pady = 64)
         self.possible.config(yscrollcommand = self.scrollbar.set)
         self.scrollbar.config(command = self.possible.yview)
         self.possible.bind("<<ListboxSelect>>",lambda event: self.get_select(event))
         
         self.set_letters(conversions(),self.converts)
 
-        tk.Label(text = "Enter regex to match",**style).grid(row = 4,column = 4)
+        find_frame = tk.Frame(self,bg = bg)
+        self.word_option = tk.BooleanVar(find_frame,value = 0) #Needs to be accessible in self.match_finder
+        word_options = ("Enter a string to match","Enter a regexp to match")
+        instruct = tk.Label(find_frame,text = word_options[0],**style)
+        instruct.grid(row = 0,column = 0,columnspan = 2)
+        tk.Checkbutton(find_frame,text = "Use regular expressions?",**style,variable = self.word_option,command = lambda: [instruct.config(text = word_options[self.word_option.get()])]).grid(row = 5,column = 0,columnspan = 2)
         self.to_find = tk.StringVar(self)
-        self.to_find.trace("w",self.trace_finder)        
-        self.ctrlf = tk.Entry(**style,textvariable = self.to_find)
-        self.ctrlf.grid(row = 5,column = 4)
-        self.match_num = tk.Label(**style,text = "Matches: 0")
-        self.match_num.grid(row = 6,column = 4)
-
-        self.find_in = tk.IntVar(self,value = 0) #0 = entry, 1 = answer
-        
-    def trace_finder(self,*args):
+        self.ctrlf = tk.Entry(find_frame,**style,textvariable = self.to_find,width = 20)
+        self.ctrlf.grid(row = 1,column = 0,columnspan = 2,sticky = "W",padx = 30)
+        tk.Button(find_frame,text = "→",command = self.match_finder,**style,width = 2).grid(row = 1,column = 0,columnspan = 2,sticky = "E")
+        self.match_num = tk.Label(find_frame,**style,text = "Matches: 0")
+        self.match_num.grid(row = 3,column = 0,columnspan = 2)
+        self.find_in = tk.IntVar(self,value = 0) #0 = entry, 1 = answer, 'self': accessible in class
+        tk.Radiobutton(find_frame,text = "In Entry",variable = self.find_in,**style,value = 0,command = self.match_finder).grid(row = 4,column = 0)
+        tk.Radiobutton(find_frame,text = "In Answer",variable = self.find_in,**style,value = 1,command = self.match_finder).grid(row = 4,column = 1)        
+        find_frame.grid(row = 4,column = 3,rowspan = 3,columnspan = 2)
+    
+    def match_finder(self,*args):
         try:
             if self.find_in.get() == 0:
                 self.highlight_words(self.answer,encipher(self.to_find.get()))
@@ -203,12 +215,13 @@ class Main(tk.Tk):
             self.ctrlf.config(fg = "black")
         except Exception as error: #Invalid regex
             self.ctrlf.config(fg = "red")
-            print(error)
-    
+##            print(error)
+        
     def highlight_words(self,widget,word): #Find all points to highlight and highlight them
         widget.tag_delete("selected")
         widget.tag_configure("selected",background = "yellow")
-        positions = find_pos(get(widget).split("\n"),word)
+        positions = find_pos(get(widget).split("\n"),word,self.word_option.get())
+        #'self.word_option.get()' is whether is looks for string (0/False) or regexp (1/True)
         for pos in positions:
             self.highlight(widget,*pos)
         self.match_num.config(text = "Matches: "+str(len(positions)))
@@ -221,13 +234,14 @@ class Main(tk.Tk):
         index = widget.curselection()
         if len(index) == 1:
             val = widget.get(index).lower()
-##            print(self.word_search.get()[0],encipher(val)[0])
             for i in range(len(val)):
                 self.switch(self.word_search.get()[i],encipher(val)[i])
             self.decrypt_current()
             
     def decrypt_current(self):
         self.set_answer(encipher(get(self.enter)))
+        self.enter.tag_delete("selected")
+        self.answer.tag_delete("selected")
     
     def set_letters(self,arr,listbox):
         listbox.delete(0,"end")
@@ -264,7 +278,9 @@ class Main(tk.Tk):
         changed[changed.index(char1)] = changed[changed.index(char2)]
         changed[char2_index] = char1
         self.set_letters(conversions(),self.converts)
-        self.decrypt_current()
+        self.letter_var1.set("")
+        self.letter_var2.set("")
+        self.decrypt_current() #After switching, decrypt with new
     
 if __name__ == "__main__":
     app = Main()
