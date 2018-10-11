@@ -33,7 +33,11 @@ changed = list(mono) #Has to swap letters, must me mutable, this is default if n
 conversions = lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] #Call to update whenever
 letter = lambda x: re.match(r"^[a-zA-z]$",x) != None #Is letter
 keep = lambda arr1,arr2: "".join([x for x in arr1 if x in arr2])
-regex_pos = lambda regex,string: [x.span() for x in re.compile(regex).finditer(string)]
+def regex_pos(regex,string):
+    if regex == "":
+        return []
+    else:
+        return [x.span() for x in re.compile(regex).finditer(string)]
 
 def get(scrolled_text):
         return scrolled_text.get("1.0","end")
@@ -124,6 +128,7 @@ class Main(tk.Tk):
     def __init__(self):
         super().__init__()
         self.config(bg = bg)
+        
         self.enter = tkst.ScrolledText(width = 66,height = 12,**style) #12 + 12 + (button height * 2) = 26
         self.enter.grid(row = 0,column = 0,columnspan = 3,sticky = "EW")
         self.answer = tkst.ScrolledText(width = 66,height = 12,**style)
@@ -136,7 +141,7 @@ class Main(tk.Tk):
         btn_height = 1
         self.decrypt_c = tk.Button(self.buttons,text = "Decrypt Using Current",**style,width = btn_width,height=btn_height,command = self.decrypt_current)
         self.decrypt_c.grid(row = 0,column = 0,sticky = "EW")
-        self.decrypt = tk.Button(self.buttons,text = "Monographs",**style,width = btn_width,height = btn_height,command = lambda: self.set_change(self.enter.get("1.0","end")))
+        self.decrypt = tk.Button(self.buttons,text = "Monographs",**style,width = btn_width,height = btn_height,command = lambda: self.set_change(get(self.enter)))
         self.decrypt.grid(row = 0,column = 1,sticky = "EW")
         self.find = tk.Button(self.buttons,text = "Digraphs",**style,width = btn_width,height = btn_height,command = lambda: print("Coming soon!"))
         self.find.grid(row = 1,column = 0,sticky = "EW")
@@ -185,24 +190,20 @@ class Main(tk.Tk):
         self.match_num = tk.Label(**style,text = "Matches: 0")
         self.match_num.grid(row = 6,column = 4)
 
-        self.find_in = self.enter
-        global changed
+        self.find_in = tk.IntVar(self,value = 0) #0 = entry, 1 = answer
         
     def trace_finder(self,*args):
-##        self.to_find.set(self.to_find.get().lower())
-##        print(self.to_find.get())
         try:
-            print(get(self.enter))
-            if self.find_in == self.enter:
+            if self.find_in.get() == 0:
+                self.highlight_words(self.answer,encipher(self.to_find.get()))
                 self.highlight_words(self.enter,self.to_find.get())
-                self.highlight_words(self.answer,self.to_find.get())
             else:
-                self.highlight_words(self.enter,self.to_find.get())
                 self.highlight_words(self.answer,self.to_find.get())
+                self.highlight_words(self.enter,decipher(self.to_find.get()))
             self.ctrlf.config(fg = "black")
-        except Exception as e: #Invalid regex
+        except Exception as error: #Invalid regex
             self.ctrlf.config(fg = "red")
-            print(e)
+            print(error)
     
     def highlight_words(self,widget,word): #Find all points to highlight and highlight them
         widget.tag_delete("selected")
@@ -215,7 +216,7 @@ class Main(tk.Tk):
     def highlight(self,widget,index1 = "1.0",index2 = "1.0"): #Highlight between two points
         widget.tag_add("selected",index1,index2)
         
-    def get_select(self,event):
+    def get_select(self,event): #Activate when listbox item selected
         widget = event.widget
         index = widget.curselection()
         if len(index) == 1:
@@ -226,7 +227,7 @@ class Main(tk.Tk):
             self.decrypt_current()
             
     def decrypt_current(self):
-        self.set_answer(encipher(self.enter.get("1.0","end")))
+        self.set_answer(encipher(get(self.enter)))
     
     def set_letters(self,arr,listbox):
         listbox.delete(0,"end")
@@ -238,7 +239,7 @@ class Main(tk.Tk):
         self.answer.insert("end",value)
     
     def set_change(self,plain_txt):
-##        global changed
+        global changed
         changed = assign(amount(plain_txt))
         self.set_answer(encipher(plain_txt))
         self.set_letters(conversions(),self.converts)
