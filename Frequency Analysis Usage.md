@@ -1,0 +1,1 @@
+This is a guide to the frequency analysis program in this repository.
