@@ -10,12 +10,14 @@ It returns the answer keeping punctuation, spaces and which letters are capitals
 Upcoming features:
 -digraphs
 -trigraphs
--highlighting words
+-highlighting words from entry to encoded in answer and vice versa
+-decode/encode singe words
 """
 
 import tkinter as tk
 import tkinter.scrolledtext as tkst
-from re import match
+import re
+from warnings import warn
 
 font = ("Consolas",10)
 bg = "white"
@@ -29,16 +31,27 @@ tri = ("the","and","tha","ent","ion","tio","for","nce","has","nce","tis","oft","
 changed = list(mono) #Has to swap letters, must me mutable, this is default if no letters are entered
 
 conversions = lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] #Call to update whenever
-letter = lambda x: match(r"[a-zA-z]",x) != None #Is letter
+letter = lambda x: re.match(r"^[a-zA-z]$",x) != None #Is letter
 keep = lambda arr1,arr2: "".join([x for x in arr1 if x in arr2])
+regex_pos = lambda regex,string: [x.span() for x in re.compile(regex).finditer(string)]
 
-def find_pos(line_list,find): #Find row and column of words: (0,10) would become "1.10"
+def get(scrolled_text):
+        return scrolled_text.get("1.0","end")
+
+def _find_pos(line_list,find): #Find row and column of words: (0,10) would become "1.10"
     result = [] #2D
     for line_num in range(len(line_list)):
         for letter_pos in range(len(line_list[line_num])):
             if line_list[line_num][letter_pos:letter_pos+len(find)] == find:
                 result += (("{}.{}".format(line_num+1,letter_pos),"{}.{}".format(line_num+1,letter_pos+len(find))),)
     return result
+
+def find_pos(line_list,regex): #line_list example: ("hello there","howdy parter")
+    result = []
+    for line_num in range(len(line_list)):
+        for letter_pos in regex_pos(regex,line_list[line_num]): #example of letter_pos: (3,6), starting and finishing index
+            result += (("{}.{}".format(line_num+1,letter_pos[0]),"{}.{}".format(line_num+1,letter_pos[1])),)
+    return tuple(result)
 
 def set_to_letter(string):
     if string == "": 
@@ -131,7 +144,7 @@ class Main(tk.Tk):
         self.find.grid(row = 1,column = 1,sticky = "EW")
         
         tk.Label(**style,text = "Enter two letters below to switch them").grid(row = 4,column = 1,columnspan = 2,sticky = "EW")
-        tk.Message(text = """'Decrypt': Find letter frequencies and attempt to decrypt (start with this)
+        tk.Message(text = """'Monographs': Find letter frequencies and attempt to decrypt (start with this)
                             'Decrypt using current': Decrypt using current conversion (list box,left)""",
                    **style,justify = "center",fg = "#464647"
                    ).grid(row = 4,column = 0,rowspan = 3)
@@ -164,28 +177,40 @@ class Main(tk.Tk):
         
         self.set_letters(conversions(),self.converts)
 
+        tk.Label(text = "Enter regex to match",**style).grid(row = 4,column = 4)
         self.to_find = tk.StringVar(self)
-        self.to_find.trace("w",self.trace_finder)
+        self.to_find.trace("w",self.trace_finder)        
         self.ctrlf = tk.Entry(**style,textvariable = self.to_find)
         self.ctrlf.grid(row = 5,column = 4)
-        self.select = tk.Button(text = "Select words",command = lambda: [self.highlight_words(self.enter,"hi")])
-        self.select.grid(row = 3,column = 4)
+        self.match_num = tk.Label(**style,text = "Matches: 0")
+        self.match_num.grid(row = 6,column = 4)
 
+        self.find_in = self.enter
         global changed
-
+        
     def trace_finder(self,*args):
-        self.to_find.set(self.to_find.get().lower())
+##        self.to_find.set(self.to_find.get().lower())
 ##        print(self.to_find.get())
-        self.highlight_words(self.enter,self.to_find.get())
-        self.highlight_words(self.answer,self.to_find.get())
+        try:
+            print(get(self.enter))
+            if self.find_in == self.enter:
+                self.highlight_words(self.enter,self.to_find.get())
+                self.highlight_words(self.answer,self.to_find.get())
+            else:
+                self.highlight_words(self.enter,self.to_find.get())
+                self.highlight_words(self.answer,self.to_find.get())
+            self.ctrlf.config(fg = "black")
+        except Exception as e: #Invalid regex
+            self.ctrlf.config(fg = "red")
+            print(e)
     
     def highlight_words(self,widget,word): #Find all points to highlight and highlight them
         widget.tag_delete("selected")
         widget.tag_configure("selected",background = "yellow")
-        positions = find_pos(widget.get("1.0","end").split("\n"),word)
-##        print(positions)
+        positions = find_pos(get(widget).split("\n"),word)
         for pos in positions:
             self.highlight(widget,*pos)
+        self.match_num.config(text = "Matches: "+str(len(positions)))
         
     def highlight(self,widget,index1 = "1.0",index2 = "1.0"): #Highlight between two points
         widget.tag_add("selected",index1,index2)
