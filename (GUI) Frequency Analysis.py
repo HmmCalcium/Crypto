@@ -192,7 +192,7 @@ class Main(tk.Tk):
         word_options = ("Enter a string to match","Enter a regexp to match")
         instruct = tk.Label(find_frame,text = word_options[0],**style)
         instruct.grid(row = 0,column = 0,columnspan = 2)
-        tk.Checkbutton(find_frame,text = "Use regular expressions?",**style,variable = self.word_option,command = lambda: [instruct.config(text = word_options[self.word_option.get()])]).grid(row = 5,column = 0,columnspan = 2)
+        tk.Checkbutton(find_frame,text = "Use regular expressions?",**style,variable = self.word_option,command = lambda: [instruct.config(text = word_options[self.word_option.get()]),self.match_finder()]).grid(row = 5,column = 0,columnspan = 2)
         self.to_find = tk.StringVar(self)
         self.ctrlf = tk.Entry(find_frame,**style,textvariable = self.to_find,width = 20)
         self.ctrlf.grid(row = 1,column = 0,columnspan = 2,sticky = "W",padx = 30)
