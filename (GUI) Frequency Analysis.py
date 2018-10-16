@@ -203,6 +203,9 @@ class Main(tk.Tk):
         tk.Radiobutton(find_frame,text = "In Entry",variable = self.find_in,**style,value = 0,command = self.match_finder).grid(row = 4,column = 0)
         tk.Radiobutton(find_frame,text = "In Answer",variable = self.find_in,**style,value = 1,command = self.match_finder).grid(row = 4,column = 1)        
         find_frame.grid(row = 4,column = 3,rowspan = 3,columnspan = 2)
+
+    def back_in_black(self):
+        pass
     
     def match_finder(self,*args):
         try:
