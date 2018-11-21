@@ -20,6 +20,8 @@ When you switch, the 'decrypt using current' button will be invoked and both let
 
 A word may be entered. It is not case-sensetive.
 All words that could be enciphered to this that appear in the entry scrolledtext are listed.
+For example: 'hello' could become 'jrkkv' as the repeated letters are in the same places.
+So this would be a match
 It is in alphabetical order and retains the case when displayed.
 Simply click on the word that you want to use and it will switch all of the appropriate letters.
 The word you enter should be an english word to find possible matches.
