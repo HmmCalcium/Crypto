@@ -7,9 +7,7 @@ This program decrypts substitution ciphers by finding the frequencies of letters
 You can switch words once it's done and search for words.
 It returns the answer keeping punctuation, spaces and which letters are capitals.
 
-Upcoming features:
--digraphs
--trigraphs
+Upcoming features: Suggestions
 """
 
 import tkinter as tk
@@ -17,23 +15,52 @@ import tkinter.scrolledtext as tkst
 import re
 from warnings import warn
 
+#Change these depending on state
+WIP = False
+NEW_RELEASE = True
+
+
+title = "Frequency Analysis"
+if WIP:
+    title += " (FEATURE CURRENTLY BEING ADDED - WILL NOT WORK PROPERLY)"
+if NEW_RELEASE:
+    title += " (FEATURE HAS JUST BEEN ADDED - MAY BE BUGGY STILL)"
+
 font = ("Consolas",10)
 bg = "white"
 style = {"bg":bg,"font":font}
 
 alphabet = "abcdefghijklmnopqrstuvwxyz" #Doesn't need to be a tuple
 mono = "etaoinshrdlcumwfgypbvkjxqz" #Doesn't need to be a tuple
+##alphabet = mono[:]
 di = ("th","he","an","in","er","on","re","ed","nd","ha","at","en")
 tri = ("the","and","tha","ent","ion","tio","for","nce","has","nce","tis","oft","men")
 
-changed = list(mono) #Has to swap letters, must me mutable, this is default if no letters are entered
+co_nums = ("mono","di","tri")
+
+changed = list(alphabet) #Has to swap letters, must me mutable, this is default if no letters are entered
 
 conversions = lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] #Call to update whenever
-letter = lambda x: re.match(r"^[a-zA-z]$",x) != None #Is letter
+letter = lambda x: re.match(r"^[a-zA-z]$",x) !=  None #Is letter
 keep = lambda arr1,arr2: "".join([x for x in arr1 if x in arr2])
+order_changed = lambda: None
+
+
+def order_rating(array):
+    score = 0
+    for i in range(len(array)):
+        cmp1 = array[i]
+        cmp2 = array[(i+1)%len(array)]
+        if cmp1 != cmp2:
+            if cmp1 > cmp2:
+                score -= 1
+            else:
+                score += 1
+##            print(cmp1, cmp2)
+    return int(100*score/(len(array)))
 
 def regex_pos(find,string,mode): #'find' can be string or regexp. mode = 0: string, 1: regexp
-    if find == "":
+    if find  ==  "":
         return []
     else:
         if mode == 0:
@@ -56,7 +83,7 @@ def find_pos(line_list,regex,mode): #line_list example: ("hello there","howdy pa
     result = []
     for line_num in range(len(line_list)):
         for letter_pos in regex_pos(regex,line_list[line_num],mode): #example of letter_pos: (3,6), starting and finishing index
-            result += (("{}.{}".format(line_num+1,letter_pos[0]),"{}.{}".format(line_num+1,letter_pos[1])),)
+            result +=  (("{}.{}".format(line_num+1,letter_pos[0]),"{}.{}".format(line_num+1,letter_pos[1])),)
     return tuple(result)
 
 def set_to_letter(string):
@@ -67,55 +94,102 @@ def set_to_letter(string):
         string = "" #Only allowed if letter
     return string.lower()
 
-def amount(string): #Dictionary with numbers of each letter
-    amount = [0]*26 #26*zero appearances
-    for el in string:
-        if el.lower() in alphabet:
-            amount[alphabet.index(el.lower())] += 1
-    return amount
+def order_dict(dictionary):
+##    print("dict:", dictionary)
+    #order_dict({'he': 2, 'el': 1, 'll': 1, 'lo': 1, 'ot': 1, 'th': 1, 'er': 1, 're': 1, 'ef': 1, 'fr': 1, 'ri': 1, 'ie': 1, 'en': 1, 'nd': 1})
+    new = []
+    for x in range(len(dictionary)):
+        hi = max(tuple(dictionary.values()))
+        for k,v in dictionary.items():
+            if v == hi:
+                new.append(k)
+                del dictionary[k]
+                break
+    return new
 
-def assign(arr): #Dictionary with each letter's frequency
+
+def amount(string,group_size = 1): #Dictionary with numbers of each letter
+##    tally = [0]*len(var_value) #[0,0,0,0,0,0...]
+    string = keep(string.lower(), alphabet)
+    iterable = [string[i:i+group_size] for i in range(1+len(string)-group_size)]
+##    print("iterable:", iterable)
+    amounts = {}
+    for el in iterable:
+##        if el.lower() in var_value:
+##            tally[var_value.index(el.lower())] +=  1
+            if el in amounts.keys():
+                amounts[el] +=  1
+            else:
+                amounts[el] = 1
+    return amounts            
+
+def _assign(arr, group_size = 1): #Dictionary with each letter's frequency
     new = [""]*26
     for i in range(26):
         hi = arr.index(max(arr)) #position of highest number
         new[hi] = mono[i] #Set highest to highest remaining in most frequent letters
-        arr[hi] = -1 #Won't be reused but deleting will cause index error
+        arr[hi] = -1 #Won't be reused but deleting will reduce list lenght and cause index error
     return new
 
-def encipher(text): #Impure - required 'changed'
+def assign(arr,group_size = 1):
+    selected_var = co_nums[group_size-1]
+    var_value = globals()[selected_var]
+    ordered = order_dict(arr)
+##    print("ordered:", ordered)
+    new_changed = changed[:]
+    for x in range(len(var_value[:len(ordered)])):
+        for letter, i in zip(ordered[x], range(len(ordered[x]))):
+##            print(var_value[x])
+##            print(letter, var_value[x])
+##            print(new_changed[alphabet.index(letter)], mono[x])
+            new_changed[alphabet.index(letter)] = var_value[x][i]
+##    print("new changed", new_changed)
+##    remaining_letters = [letter for letter in alphabet if letter not in new_changed]
+####    print("remaining:", remaining_letters)
+##    for letter in alphabet[len(new_changed):]:
+##        if letter not in new_changed:
+##            new_changed.append(letter)
+##        else:
+##            new_changed.append(remaining_letters.pop(0))
+####    print("filled, len:", new_changed, len(new_changed))
+##    print("new changed 2:", new_changed)
+    return new_changed
+
+def encipher(text):
     answer = ""
     for el in text:
         if el in alphabet:
-            answer += changed[alphabet.index(el)]
+            answer +=  changed[alphabet.index(el)]
         elif el in alphabet.upper():
-            answer += changed[alphabet.index(el.lower())].upper()
+            answer +=  changed[alphabet.index(el.lower())].upper()
         else:
-            answer += el
+            answer +=  el
     return answer
 
 def decipher(text):
     answer = ""
     for el in text:
         if el in alphabet:
-            answer += alphabet[changed.index(el)]
+            answer +=  alphabet[changed.index(el)]
         elif el in alphabet.upper():
-            answer += alphabet[changed.index(el.lower())].upper()
+            answer +=  alphabet[changed.index(el.lower())].upper()
         else:
-            answer += el
+            answer +=  el
     return answer
 
-def compare(search): #Allows you to find if one word can be enciphered to another with substitution
-    #This makes a word into a tuple of integers - if a letter has not appeared,
-    #it adds its position to numbers. Else, the position of the first
-    #appearance of that letter: "morning" -> (0,1,2,3,4,3,6) - 'n' appears twice
+def compare(search):
+    """Allows you to find if one word can be enciphered to another with substitution.
+    This makes a word into a tuple of integers - if a letter has not appeared,
+    it adds its position to numbers. Else, the position of the first
+    appearance of that letter: "morning" -> (0,1,2,3,4,3,6) - 'n' appears twice"""
     search = keep(search.lower(),alphabet)
     numbers = [] #Answer
     done = [] #Leters that have already appeared
     for x in range(len(search)):
         if search[x] in done:
-            numbers += [done.index(search[x])]
+            numbers +=  [done.index(search[x])]
         else:
-            numbers += [x]
+            numbers +=  [x]
         done.append(search[x])
     return tuple(numbers)
 
@@ -126,14 +200,14 @@ def find_matches(text,word): #Find matches of word to words in the text
     text = keep(text,alphabet+alphabet.upper()+" ").split()
     for x in text:
         if compare(x) == find and not x in result: #No duplicates
-            result += [x] #If not already there, add
+            result +=  [x] #If not already there, add
     return sorted(result) #Makes it easier to navigate
 
 class Main(tk.Tk):
     def __init__(self):
         super().__init__()
         self.config(bg = bg)
-        self.title("Frequency Analysis")
+        self.title(title)
         
         self.enter = tkst.ScrolledText(width = 70,height = 12,**style) #12 + 12 + (button height * 2) = 26
         self.enter.grid(row = 0,column = 0,columnspan = 3,sticky = "EW")
@@ -145,44 +219,55 @@ class Main(tk.Tk):
 
         btn_width = 35
         btn_height = 1
-        self.decrypt_c = tk.Button(self.buttons,text = "Decrypt Using Current",**style,width = btn_width,height=btn_height,command = self.decrypt_current)
+        make_command = lambda size: lambda: self.set_change(get(self.enter), size)
+        self.decrypt_c = tk.Button(self.buttons,text = "Decrypt Using Current",**style,width = btn_width,height = btn_height,command = self.decrypt_current)
         self.decrypt_c.grid(row = 0,column = 0,sticky = "EW")
-        self.decrypt = tk.Button(self.buttons,text = "Monographs",**style,width = btn_width,height = btn_height,command = lambda: self.set_change(get(self.enter)))
+        self.decrypt = tk.Button(self.buttons,text = "Monographs",**style,width = btn_width,height = btn_height,command = make_command(1))
         self.decrypt.grid(row = 0,column = 1,sticky = "EW")
-        self.find = tk.Button(self.buttons,text = "Digraphs",**style,width = btn_width,height = btn_height,command = lambda: print("Coming soon!"))
+        self.find = tk.Button(self.buttons,text = "Digraphs",**style,width = btn_width,height = btn_height,command = make_command(2))
         self.find.grid(row = 1,column = 0,sticky = "EW")
-        self.find = tk.Button(self.buttons,text = "Trigraphs",**style,width = btn_width,height = btn_height,command = lambda: print("Coming soon!"))
+        self.find = tk.Button(self.buttons,text = "Trigraphs",**style,width = btn_width,height = btn_height,command = make_command(3))
         self.find.grid(row = 1,column = 1,sticky = "EW")
         
         tk.Label(**style,text = "Enter two letters below to switch them").grid(row = 4,column = 1,columnspan = 2,sticky = "EW")
-        tk.Message(text = """Made by Alex Scorza. This project is my work and my work only, but feel free to use it!""",
-                   **style,justify = "center",fg = "#464647",width = 200
-                   ).grid(row = 4,column = 0,rowspan = 3)
+##        tk.Message(text = """Made by Alex Scorza. This project is my own work, but feel free to use and modify it!""",
+##                   **style,justify = "center",fg = "#464647",width = 200
+##                   ).grid(row = 4,column = 0,rowspan = 3)
+        self.stats_frame = tk.Frame()
+        self.stats_frame.grid(row = 4, column = 0, rowspan = 3)
+        tk.Label(self.stats_frame, **style, text = "Order rating (-100 to 100):", justify = "center").grid(row = 0, column = 0)
+        self.order_lbl = tk.Label(self.stats_frame, **style, text = "100%")
+        self.order_lbl.grid(row = 0, column = 1)
         
         self.letter_var1 = tk.StringVar(self)
         self.letter_var2 = tk.StringVar(self)
         self.letter_var1.trace("w",self.check_letter1)
         self.letter_var2.trace("w",self.check_letter2)
-        tk.Entry(**style,textvariable = self.letter_var1,width = 2,justify = "center").grid(row = 5,column = 1)
-        tk.Entry(**style,textvariable = self.letter_var2,width = 2,justify = "center").grid(row = 5,column = 2)
+        self.letter_entry1 = tk.Entry(**style,textvariable = self.letter_var1,width = 2,justify = "center")
+        self.letter_entry1.grid(row = 5,column = 1)
+        self.letter_entry1.bind("<Return>", self.return_letter1)
+        self.letter_entry2 = tk.Entry(**style,textvariable = self.letter_var2,width = 2,justify = "center")
+        self.letter_entry2.grid(row = 5,column = 2)
+        self.letter_entry2.bind("<Return>", self.return_letter2)
         self.switch_btn = tk.Button(text = "Switch",**style,state = "disabled",command = lambda: self.switch(self.letter_var1.get(),self.letter_var2.get()))
         self.switch_btn.grid(row = 6,column = 1,columnspan = 2)
         
         self.converts = tk.Listbox(self,width = 10,**style)
         self.converts.grid(row = 0,column = 3,rowspan = 3,sticky = "NS")
+        self.converts.bind("<<ListboxSelect>>", self.on_conversion_select)
 
         tk.Label(text = "Enter a word: ",**style).grid(row = 0,column = 4,sticky = "NEW",columnspan = 2)
         self.word_search = tk.StringVar(self)
         word_entry = tk.Entry(width = 17,textvariable = self.word_search,**style)
         word_entry.grid(row = 0,column = 4,sticky = "N",pady = 30)
         tk.Button(text = "→",**style,width = 2,command = lambda: self.set_letters(find_matches(get(self.enter),self.word_search.get()),self.possible)).grid(row = 0,column = 5,sticky = "NE",pady = 26)
-        
+        ###
         self.possible = tk.Listbox(height = 22)
         self.possible.grid(row = 0,rowspan = 5,column = 4,sticky = "NS",pady = 64)
-        self.scrollbar = tk.Scrollbar(self)
+        self.scrollbar = tk.Scrollbar(self, command = self.possible.yview)
         self.scrollbar.grid(row = 0,rowspan = 5,column = 5,sticky = "NSW",pady = 64)
         self.possible.config(yscrollcommand = self.scrollbar.set)
-        self.scrollbar.config(command = self.possible.yview)
+        ###
         self.possible.bind("<<ListboxSelect>>",lambda event: self.get_select(event))
         
         self.set_letters(conversions(),self.converts)
@@ -203,9 +288,7 @@ class Main(tk.Tk):
         tk.Radiobutton(find_frame,text = "In Entry",variable = self.find_in,**style,value = 0,command = self.match_finder).grid(row = 4,column = 0)
         tk.Radiobutton(find_frame,text = "In Answer",variable = self.find_in,**style,value = 1,command = self.match_finder).grid(row = 4,column = 1)        
         find_frame.grid(row = 4,column = 3,rowspan = 3,columnspan = 2)
-
-    def back_in_black(self):
-        pass
+        self.mainloop()
     
     def match_finder(self,*args):
         try:
@@ -240,6 +323,13 @@ class Main(tk.Tk):
             for i in range(len(val)):
                 self.switch(self.word_search.get()[i],encipher(val)[i])
             self.decrypt_current()
+
+    def on_conversion_select(self, event):
+        widget = event.widget
+        index = int(widget.curselection()[0])
+        value = widget.get(index)
+        print(index, value)
+        self.letter_var1.set(value[0])
             
     def decrypt_current(self):
         self.set_answer(encipher(get(self.enter)))
@@ -255,15 +345,32 @@ class Main(tk.Tk):
         self.answer.delete("1.0","end")
         self.answer.insert("end",value)
     
-    def set_change(self,plain_txt):
+    def set_change(self,plain_txt,group_size):
         global changed
-        changed = assign(amount(plain_txt))
+        tallied = amount(plain_txt, group_size)
+        print("TALLIED:", len(tallied))
+        changed = assign(tallied, group_size)
+        self.order_lbl.config(text = str(order_rating(changed)) + "%")
+##        print(tallied)
+##        print(changed)
         self.set_answer(encipher(plain_txt))
         self.set_letters(conversions(),self.converts)
-        
+
+    def return_letter1(self,event):
+        if self.letter_var1.get() == "":
+            return
+        print("enter")
+        self.letter_entry2.focus()
+
+    def return_letter2(self,event):
+        if self.letter_var2.get() == "":
+            return
+        self.switch_btn.invoke()
+    
     def check_letter1(self,*args):
         self.letter_var1.set(set_to_letter(self.letter_var1.get()))
-        self.check_both()
+        if self.check_both():
+            pass
 
     def check_letter2(self,*args):
         self.letter_var2.set(set_to_letter(self.letter_var2.get()))
@@ -271,10 +378,12 @@ class Main(tk.Tk):
 
     def check_both(self):
         vals = (self.letter_var1.get(),self.letter_var2.get())
-        if "" in vals and len(set(vals)) == 2: #None empty and no duplicates
+        if "" in vals or len(set(vals)) == 1: #None empty and no duplicates
             self.switch_btn.config(state = "disabled")
+            return False
         else:
             self.switch_btn.config(state = "normal")
+            return True
     
     def switch(self,char1,char2): #Switch two letters in changed
         char2_index = changed.index(char2)
@@ -284,6 +393,6 @@ class Main(tk.Tk):
         self.letter_var1.set("")
         self.letter_var2.set("")
         self.decrypt_current() #After switching, decrypt with new
-    
+
 if __name__ == "__main__":
     app = Main()
