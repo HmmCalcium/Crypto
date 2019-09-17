@@ -432,5 +432,31 @@ class Main(tk.Tk):
         self.letter_var2.set("")
         self.decrypt_current() #After switching, decrypt with new
 
+class Graph(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Graph Window")
+        self.grid_columnconfigure(0, weight = 1)
+        self.grid_rowconfigure(0, weight = 1)
+        self.canvas = tk.Canvas(self, width = 600, height = 300)
+        self.canvas.grid(row = 0, column = 0, sticky = "NESW")
+##        self.canvas.bind("<Configure>", self.on_resize)
+        self.t_screen = turtle.TurtleScreen(self.canvas)
+        self.t_screen.delay(0)
+##        self.t_screen.tracer(0, 0)
+        self.t = turtle.RawTurtle(self.t_screen)
+        self.t.setpos(100, 100)
+##        self.t_screen.update()
+        self.canvas.addtag_all("all")
+        self.mainloop()
+
+    def on_resize(self, event):
+        change_scale_x = event.width/self.canvas.width
+        change_scale_y = event.height/self.canvas.height
+        self.canvas.width = event.width
+        self.canvas.height = event.height
+        self.canvas.config(width = self.canvas.width, height = self.canvas.height)
+        self.scale("all",0,0,change_scale_x, change_scale_y)        
+    
 if __name__ == "__main__":
     app = Main()
