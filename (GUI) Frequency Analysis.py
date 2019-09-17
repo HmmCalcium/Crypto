@@ -1,6 +1,7 @@
 """
 Alex Scorza September 2018
 http://www.randomtextgenerator.com/
+https://www.blindtextgenerator.com/lorem-ipsum
 
 Made for the cipher challenge but feel free to use all you lovely people.
 This program decrypts substitution ciphers by finding the frequencies of letters.
@@ -42,10 +43,14 @@ co_nums = ("mono", "di", "tri")
 changed = list(alphabet)  #Has to swap letters, must me mutable, this is default if no letters are entered
 
 conversions = lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] #Call to update whenever
-letter = lambda x: re.match(r"^[a-zA-z]$", x) !=  None  #Is letter
+letter = lambda x: re.match(r"^[a-zA-z]$", x) is not  None  # Is letter
 keep = lambda arr1, arr2: "".join([x for x in arr1 if x in arr2])
 order_changed = lambda: None
 
+def add_spaces(num):
+    num = str(num) + "%"
+    num = " "*(5 - len(num)) + num
+    return num
 
 def order_rating(array):
     score = 0
@@ -137,15 +142,18 @@ def assign(arr, group_size = 1):
     var_value = globals()[selected_var]
     ordered = order_dict(arr)
 ##    print("ordered:", ordered)
-    new_changed = changed[:]
+    overlay = [""]*26
     for x in range(len(var_value[:len(ordered)])):
         for letter, i in zip(ordered[x], range(len(ordered[x]))):
 ##            print(var_value[x])
 ##            print(letter, var_value[x])
 ##            print(new_changed[alphabet.index(letter)], mono[x])
+            
             selected_val = var_value[x][i]
-            new_changed[alphabet.index(letter)] = selected_val
-            new_changed[alphabet.index(selected_val)] = letter
+##            print(selected_val)
+            if letter not in overlay:
+                overlay[alphabet.index(letter)], overlay[alphabet.index(selected_val)] = selected_val, letter
+##            new_changed[alphabet.index(selected_val)] = letter
 ##    print("new changed", new_changed)
 ##    remaining_letters = [letter for letter in alphabet if letter not in new_changed]
 ####    print("remaining:", remaining_letters)
@@ -156,9 +164,15 @@ def assign(arr, group_size = 1):
 ##            new_changed.append(remaining_letters.pop(0))
 ####    print("filled, len:", new_changed, len(new_changed))
 ##    print("new changed 2:", new_changed)
+
+    new_changed = changed[:]
+    for i in range(len(alphabet)):
+        if overlay[i] != "":
+            new_changed[i] = overlay[i]
+    print(overlay)
     set1 = set(alphabet)
     set2 = set(new_changed)
-    print(set1, len(set1), set2, len(set2), set1 == set2)
+##    print(alphabet, len(set1), changed, len(set2), set1 == set2, set2 - set1)
     return new_changed
 
 def encipher(text):
@@ -240,13 +254,13 @@ class Main(tk.Tk):
         self.stats_frame = tk.Frame()
         self.stats_frame.grid(row = 4, column = 0, rowspan = 3)
         tk.Label(self.stats_frame, **style, text = "Order rating (-100 to 100):", justify = "center").grid(row = 0, column = 0)
-        self.order_lbl = tk.Label(self.stats_frame, **style, text = "100%")
+        self.order_lbl = tk.Label(self.stats_frame, **style, text = " 100%")
         self.order_lbl.grid(row = 0, column = 1)
         
         self.switch_frame = tk.Frame(bg = bg)
         self.switch_frame.grid(row = 4, column = 1)
         tk.Label(self.switch_frame, **style, text = "Enter two letters below to switch them").grid(row = 0, column = 0, columnspan = 2, sticky = "EW")
-        self.mark_as_correct = tk.BooleanVar(self)
+        self.mark_as_correct = tk.BooleanVar(self, value=True)
         tk.Checkbutton(self.switch_frame, **style, text = "Mark new letter as correct", variable = self.mark_as_correct).grid(row = 1, column = 0, columnspan = 2)
         self.letter_var1 = tk.StringVar(self)
         self.letter_var2 = tk.StringVar(self)
@@ -386,9 +400,11 @@ class Main(tk.Tk):
     def set_change(self, plain_txt, group_size):
         global changed
         tallied = amount(plain_txt, group_size)
-        print("TALLIED:", len(tallied))
+##        print("TALLIED:", len(tallied))
+##        print(alphabet, changed)
+        self.reset_changed()
         changed = assign(tallied, group_size)
-        self.order_lbl.config(text = str(order_rating(changed)) + "%")
+        self.order_lbl.config(text = add_spaces(order_rating(changed)))
 ##        print(tallied)
 ##        print(changed)
         self.set_answer(encipher(plain_txt))
@@ -397,7 +413,7 @@ class Main(tk.Tk):
     def return_letter1(self, event):
         if self.letter_var1.get() == "":
             return
-        print("enter")
+##        print("enter")
         self.letter_entry2.focus()
 
     def return_letter2(self, event):
@@ -423,6 +439,11 @@ class Main(tk.Tk):
             self.switch_btn.config(state = "normal")
             return True
     
+    def reset_changed(self):
+        changed = list(alphabet)  #Has to swap letters, must me mutable, this is default if no letters are entered
+        self.decrypt_current()
+
+
     def switch(self, char1, char2): #Switch two letters in changed
         char2_index = changed.index(char2)
         changed[changed.index(char1)] = changed[changed.index(char2)]
