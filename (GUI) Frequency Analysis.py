@@ -8,7 +8,9 @@ This program decrypts substitution ciphers by finding the frequencies of letters
 You can switch words once it's done and search for words.
 It returns the answer keeping punctuation, spaces and which letters are capitals.
 
-Where I left off: incorrectly detecting valid words as invalid
+One morning, when Gregor Samsa woke from troubled dreams, he found himself transformed in his bed into a horrible vermin. He lay on his armour-like back, and if he lifted his head a little he could see his brown belly, slightly domed and divided by arches into stiff sections. The bedding was hardly able to cover it and seemed ready to slide off any moment. His many legs, pitifully thin compared with the size of the rest of him, waved about helplessly as he looked. "What's happened to me?" he thought. It wasn't a dream. His room, a proper human room although a little too small, lay peacefully between its four familiar walls. A collection of textile samples lay spread out on the table - Samsa was a travelling salesman - and above it there hung a picture that he had recently cut out of an illustrated magazine and housed in a nice, gilded frame. It showed a lady fitted out with a fur hat and fur boa who sat upright, raising a heavy fur muff that covered the whole of her lower arm towards the viewer. Gregor then turned to look out the window at the dull weather. Drops 
+Vcf hvkcwcg, mbfc Gkfgvk Eihei mvlf dkvh nkvastfy ykfihe, bf dvacy bwheftd nkicedvkhfy wc bwe sfy wcnv i bvkkwstf qfkhwc. Bf tip vc bwe ikhvak-twlf sizl, icy wd bf twdnfy bwe bfiy i twnntf bf zvaty eff bwe skvmc sfttp, etwgbntp yvhfy icy ywqwyfy sp ikzbfe wcnv enwdd efznwvce. Nbf sfyywcg mie bikytp istf nv zvqfk wn icy effhfy kfiyp nv etwyf vdd icp hvhfcn. Bwe hicp tfge, jwnwdattp nbwc zvhjikfy mwnb nbf ewrf vd nbf kfen vd bwh, miqfy isvan bftjtfeetp ie bf tvvlfy. "Mbin'e bijjfcfy nv hf?" bf nbvagbn. Wn miec'n i ykfih. Bwe kvvh, i jkvjfk bahic kvvh itnbvagb i twnntf nvv ehitt, tip jfizfdattp sfnmffc wne dvak dihwtwik mitte. I zvttfznwvc vd nfxnwtf eihjtfe tip ejkfiy van vc nbf nistf - Eihei mie i nkiqfttwcg eitfehic - icy isvqf wn nbfkf bacg i jwznakf nbin bf biy kfzfcntp zan van vd ic wttaenkinfy higirwcf icy bvaefy wc i cwzf, gwtyfy dkihf. Wn ebvmfy i tiyp dwnnfy van mwnb i dak bin icy dak svi mbv ein ajkwgbn, kiwewcg i bfiqp dak hadd nbin zvqfkfy nbf mbvtf vd bfk tvmfk ikh nvmikye nbf qwfmfk. Gkfgvk nbfc nakcfy nv tvvl van nbf mwcyvm in nbf yatt mfinbfk. Ykvje
+a b c d e f g h i j k l m n o p q r s t u v w x y z
 """
 
 import tkinter as tk
@@ -236,16 +238,6 @@ def compare(search):
         done.append(search[x])
     return tuple(numbers)
 
-def find_matches(text, word): # Find matches of word to words in the text
-    result=[]
-    find=compare(word)
-    text=text.replace("\n", " ") # Remove newlines and put a space -> one line
-    text=keep(text, alphabet+alphabet.upper()+" ").split()
-    for x in text:
-        if compare(x) == find and not x in result: # No duplicates
-            result +=  [x] # If not already there, add
-    return sorted(result) # Makes it easier to navigate
-
 class Main(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -257,7 +249,7 @@ class Main(tk.Tk):
         self.answer=tkst.ScrolledText(width=70, height=12, state="disabled", **style)
         self.answer.grid(row=2, column=0, columnspan=3, sticky="EW")
 
-        self.buttons_frame=tk.Frame(self)
+        self.buttons_frame=tk.Frame(self, bg=bg)
         self.buttons_frame.grid(row=1, column=0, columnspan=3, sticky="EW")
 
         btn_width=35
@@ -268,8 +260,10 @@ class Main(tk.Tk):
         self.decrypt=tk.Button(self.buttons_frame, text="Monographs", **style, width=btn_width, height=btn_height, command=make_command(1))
         self.reset_btn=tk.Button(self.buttons_frame, text="Reset Conversions", command=self.reset_changed, **style)
         self.reset_btn.grid(row=1, column=0, sticky="EW")
-        self.shuffle_btn=tk.Button(self.buttons_frame, text="Shuffle Randomly", command=self.shuffle, **style)
-        self.shuffle_btn.grid(row=1, column=1, sticky="EW")
+##        self.shuffle_btn=tk.Button(self.buttons_frame, text="Shuffle Randomly", command=self.shuffle, **style)
+        self.normalise_btn=tk.Button(self.buttons_frame, text="Normalise Text", command=self.normalise, **style)
+
+        self.normalise_btn.grid(row=1, column=1, sticky="EW")
         self.decrypt.grid(row=0, column=1, sticky="EW")
 ##        self.find=tk.Button(self.buttons_frame, text="Digraphs", **style, width=btn_width, height=btn_height, command=make_command(2))
 ##        self.find.grid(row=1, column=0, sticky="EW")
@@ -286,6 +280,7 @@ class Main(tk.Tk):
         tk.Label(self.misc_frame, **style, text="Errors:", justify="right").grid(row=1, column=0, columnspan=2)
         self.error_log=tk.Text(self.misc_frame, width=30, height=2, font=font, bg="#EFEFEF", state="disabled", fg="#c90000")
         self.error_log.grid(row=2, column=0, columnspan=2)
+
         
         self.switch_frame=tk.Frame(bg=bg)
         self.switch_frame.grid(row=4, column=1)
@@ -304,6 +299,7 @@ class Main(tk.Tk):
         self.letter_entry2.bind("<Return>", self.return_letter2)
         self.switch_btn=tk.Button(self.switch_frame, text="Switch", **style, state="disabled", command=lambda: self.switch(self.letter_var1.get(), self.letter_var2.get()))
         self.switch_btn.grid(row=3, column=0, columnspan=2)
+
         
         self.converts=tk.Listbox(self, width=10, font=font, bg=lb_colours[0], selectmode="multiple")
         self.converts.grid(row=0, column=3, rowspan=3, sticky="NS")
@@ -317,21 +313,41 @@ class Main(tk.Tk):
         self.converts.bind("<Button-3>", self.popup)
         self.marked=[0]*26
 
-        tk.Label(text="Enter a word: ", **style).grid(row=0, column=4, sticky="NEW", columnspan=2)
-        self.word_search=tk.StringVar(self)
-        word_entry=tk.Entry(width=17, textvariable=self.word_search, **style)
-        word_entry.grid(row=0, column=4, sticky="N", pady=30)
-        tk.Button(text="→", **style, width=2, command=self.list_possible).grid(row=0, column=5, sticky="NE", pady=26)
-        ### 
-        self.possible=tk.Listbox(height=22)
-        self.possible.grid(row=0, rowspan=5, column=4, sticky="NS", pady=64)
-        self.scrollbar=tk.Scrollbar(self, command=self.possible.yview)
-        self.scrollbar.grid(row=0, rowspan=5, column=5, sticky="NSW", pady=64)
+
+        possible_words_frame=tk.Frame(bg=bg)
+        possible_words_frame.grid(row=0, column=4, rowspan=3, sticky="N")
+
+        tk.Label(possible_words_frame, text="Enter a word: ", **style
+                 ).grid(row=0, column=0, sticky="NEW", columnspan=2)
+        
+        search_possible_subframe=tk.Frame(possible_words_frame, bg=bg)
+        search_possible_subframe.grid(row=1, column=0, pady=10)
+        self.word_search=tk.StringVar(search_possible_subframe)
+        word_entry=tk.Entry(search_possible_subframe, width=12, textvariable=self.word_search, bg=bg, font=(font, 13))
+        word_entry.bind("<Return>", self.list_possible)
+        word_entry.grid(row=0, column=0, sticky="W")
+        tk.Button(search_possible_subframe, text="→", **style, width=2, command=self.list_possible
+                  ).grid(row=0, column=1, sticky="NES")
+
+        possible_subframe=tk.Frame(possible_words_frame, bg=bg)
+        possible_subframe.grid(row=2, column=0, sticky="NS")
+        self.possible=tk.Listbox(possible_subframe, height=15)
+        self.possible.grid(row=0, column=0)
+        self.scrollbar=tk.Scrollbar(possible_subframe, command=self.possible.yview)
+        self.scrollbar.grid(row=0, column=1, sticky="NSW")
         self.possible.config(yscrollcommand=self.scrollbar.set)
-        ### 
         self.possible.bind("<<ListboxSelect>>", lambda event: self.get_select(event))
+
+        search_type_subframe=tk.Frame(possible_words_frame, bg=bg)
+        search_type_subframe.grid(row=3, column=0)
+        self.search_type=tk.StringVar(self, value=0)
+        rbtn_text=("Search each word", "Search plain text")
+        for i in range(len(rbtn_text)):
+            tk.Radiobutton(search_type_subframe, value=i, text=rbtn_text[i], variable=self.search_type, **style
+                           ).grid(row=i, column=0, sticky="W")
         
         self.set_letters(conversions(), self.converts)
+
 
         find_frame=tk.Frame(self, bg=bg)
         self.word_option=tk.BooleanVar(find_frame, value=0) # Needs to be accessible in self.match_finder
@@ -351,6 +367,10 @@ class Main(tk.Tk):
         find_frame.grid(row=4, column=3, columnspan=2)
 
         self.mainloop()
+
+    def normalise(self):
+        entered_text=self.enter.get("1.0", "end")
+        self.set_text(keep(entered_text.upper(), alphabet.upper()), self.enter)
 
     def shuffle(self):
         global changed
@@ -373,29 +393,56 @@ class Main(tk.Tk):
         for item in selection:
             self.converts.selection_clear(item)
 
-    def list_possible(self):
-        matches=find_matches(get(self.enter), self.word_search.get())
-        print(matches)
-        print(self.marked)
+    def list_possible(self, event=None):
+        string_entered=self.word_search.get()
+        matches=self.find_matches(get(self.enter), string_entered)
+##        print(matches)
+##        print(self.marked)
         invalid_matches=[]
         marked_letters=[alphabet[i] for i in range(len(alphabet)) if self.marked[i] == 1]
         for i in range(len(matches)):
-            for letter in matches[i]:
+            for x in range(len(matches[i])):
+                letter=matches[i][x]
+##                print(marked_letters)
                 if letter in marked_letters:
+##                    print("Marked Letter")
+##                    print(letter)
+                    expected_letter=changed[alphabet.index(letter)]
+                    actual_letter=string_entered[x]
+                    
 ##                    print(letter, "in self.marked")
-                    invalid_matches.append(i)
-                    break
-        print(invalid_matches)
+                    if expected_letter != actual_letter:
+                        invalid_matches.append(i)
+                        break
+##        print(invalid_matches)
         self.set_letters(matches, self.possible)
         for i in range(len(matches)):
-            print(i, matches[i])
+##            print(i, matches[i])
             if i in invalid_matches:
                 self.possible.itemconfig(i, bg=err_colour)
             else:
                 
                 self.possible.itemconfig(i, bg=lb_colours[1])
         
-
+    def find_matches(self, text, word): # Find matches of word to words in the text
+        result=[]
+        find=compare(word)
+        mode=self.search_type.get()
+        print(repr(mode))
+        if mode == "0":
+            text=text.replace("\n", " ") # Remove newlines and put a space -> one line
+            text=tuple(word.lower() for word in keep(text, alphabet+alphabet.upper()+" ").split())
+            print(text)
+            for x in text:
+                if compare(x) == find and not x in result: # No duplicates
+                    result.append(x) # If not already there, add
+        elif mode == "1":
+            text=text.replace("\n", "")
+            for i in range(len(text) - len(word)):
+                cur_slice=text[i:1 + i + len(word)]
+            if compare(cur_slice) == find:
+                result.append(cur_slice)
+        return sorted(result) # Makes it easier to navigate
 
     def set_mark(self, index, colour_index):
         if colour_index == "invert":
@@ -451,7 +498,11 @@ class Main(tk.Tk):
             found=widget.get(index).lower()
             print("1:", found, "2:", self.word_search.get())
             for i in range(len(found)):
-                self.switch(self.word_search.get()[i], encipher(found)[i])
+                self.switch(self.word_search.get()[i], encipher(found)[i], uses_custom_marking=True)
+            print(found, self.word_search.get())
+            self.update_marked()
+            for letter in found:
+                self.set_mark(alphabet.index(letter), 1)
             self.decrypt_current()
 
     def on_conversion_select(self, event):
@@ -473,13 +524,17 @@ class Main(tk.Tk):
             listbox.insert("end", x)
 
     def set_text(self, value, widget):
-        widget.config(state="normal")
+        is_disabled=widget.cget("state") == "disabled"
+        if is_disabled:
+            widget.config(state="normal")
         widget.delete("1.0", "end")
         widget.insert("end", value)
-        widget.config(state="disabled")
+        if is_disabled:
+            widget.config(state="disabled")
     
     def set_change(self, plain_txt, group_size):
         global changed
+        self.marked = [0]*26
         tallied=amount(plain_txt, group_size)
 ##        print("TALLIED:", len(tallied))
 ##        print(alphabet, changed)
@@ -526,7 +581,7 @@ class Main(tk.Tk):
         self.update_all()
 
 
-    def switch(self, char1, char2): # Switch two letters in changed
+    def switch(self, char1, char2, uses_custom_marking=False): # Switch two letters in changed
         char2_index=changed.index(char2)
         changed[changed.index(char1)]=changed[changed.index(char2)]
         changed[char2_index]=char1
@@ -534,7 +589,7 @@ class Main(tk.Tk):
         self.letter_var1.set("")
         self.letter_var2.set("")
         self.decrypt_current() # After switching, decrypt with new
-        if self.mark_as_correct.get():
+        if self.mark_as_correct.get() and not uses_custom_marking:
             print(char1, char2)
             self.marked[changed.index(char2)] = 1
             self.update_marked()
