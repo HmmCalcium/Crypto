@@ -20,36 +20,34 @@ from warnings import warn
 import random
 
 # Change these depending on state
-WIP=True
-NEW_RELEASE=False
+WIP = True
+NEW_RELEASE = False
 
 
-title="Frequency Analysis"
+title = "Frequency Analysis"
 if WIP:
     title += " (FEATURE CURRENTLY BEING ADDED - WILL NOT WORK PROPERLY)"
 if NEW_RELEASE:
     title += " (FEATURE HAS JUST BEEN ADDED - MAY BE BUGGY STILL)"
 
-font=("Consolas", 10)
-bg="white"
-style={"bg":bg, "font":font}
-lb_colours=("#ffffff", "#82f595")
-err_colour="#f21d1d"
+font = ("Consolas", 10)
+bg = "white"
+style = {"bg": bg, "font": font}
+lb_colours = ("#ffffff", "#82f595")
+err_colour = "#f21d1d"
 
-alphabet="abcdefghijklmnopqrstuvwxyz" # Doesn't need to be a tuple
-mono="etaoinshrdlcumwfgypbvkjxqz" # Doesn't need to be a tuple
+alphabet = "abcdefghijklmnopqrstuvwxyz" # Doesn't need to be a tuple
+mono = "etaoinshrdlcumwfgypbvkjxqz" # Doesn't need to be a tuple
 ##alphabet=mono[:]
-di=("th", "he", "an", "in", "er", "on", "re", "ed", "nd", "ha", "at", "en")
-tri=("the", "and", "tha", "ent", "ion", "tio", "for", "nce", "has", "nce", "tis", "oft", "men")
+di = ("th", "he", "an", "in", "er", "on", "re", "ed", "nd", "ha", "at", "en")
+tri = ("the", "and", "tha", "ent", "ion", "tio", "for", "nce", "has", "nce", "tis", "oft", "men")
 
-co_nums=("mono", "di", "tri")
+co_nums = ("mono", "di", "tri")
 
-changed=list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
-
-conversions=lambda: [alphabet[x]+" -> "+changed[x] for x in range(26)] # Call to update whenever
-letter=lambda x: re.match(r"^[a-zA-z]$", x) is not  None  #  Is letter
-keep=lambda arr1, arr2: "".join([x for x in arr1 if x in arr2])
-order_changed=lambda: None
+#changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
+letter = lambda x: re.match(r"^[a-zA-z]$", x) is not  None  #  Is letter
+keep = lambda arr1, arr2: "".join([x for x in arr1 if x in arr2])
+order_changed = lambda: None
 
 def add_spaces(num):
     num=str(num) + "%"
@@ -181,14 +179,14 @@ def _assign(arr, group_size=1):
     return new_changed
 
 def assign(arr, group_size=1):
-    group_size=1
-    selected_var=co_nums[group_size-1]
-    var_value=globals()[selected_var]
-    ordered=order_dict(arr)
-    new_changed=[" "]*26
+    group_size = 1
+    selected_var = co_nums[group_size-1]
+    var_value = globals()[selected_var]
+    ordered = order_dict(arr)
+    new_changed  =[" "]*26
     for i in range(len(ordered)):
         index=alphabet.index(ordered[i]) # Position of most frequent letters in text
-        new_changed[index]=mono[i]
+        new_changed[index] = mono[i]
     for i in range(len(new_changed)):
         if new_changed[i] == " ":
             if alphabet[i] in new_changed:
@@ -199,28 +197,6 @@ def assign(arr, group_size=1):
     for letter in (remaining_alphabet):
         new_changed[new_changed.index(" ")] = letter # Index gives first position
     return new_changed
-
-def encipher(text):
-    answer=""
-    for el in text:
-        if el in alphabet:
-            answer +=  changed[alphabet.index(el)]
-        elif el in alphabet.upper():
-            answer +=  changed[alphabet.index(el.lower())].upper()
-        else:
-            answer +=  el
-    return answer
-
-def decipher(text):
-    answer=""
-    for el in text:
-        if el in alphabet:
-            answer +=  alphabet[changed.index(el)]
-        elif el in alphabet.upper():
-            answer +=  alphabet[changed.index(el.lower())].upper()
-        else:
-            answer +=  el
-    return answer
 
 def compare(search):
     """Allows you to find if one word can be enciphered to another with substitution.
@@ -238,12 +214,20 @@ def compare(search):
         done.append(search[x])
     return tuple(numbers)
 
+def is_action(func):
+    def decorated(self, *args, **kwargs):
+        func(self, *args, **kwargs)
+        self.actions.action()
+    return decorated
+
 class Main(tk.Tk):
     def __init__(self):
         super().__init__()
         self.config(bg=bg)
         self.title(title)
-        
+
+        self.changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
+
         self.enter=tkst.ScrolledText(width=70, height=12, **style) # 12 + 12 + (button height * 2)=26
         self.enter.grid(row=0, column=0, columnspan=3, sticky="EW")
         self.answer=tkst.ScrolledText(width=70, height=12, state="disabled", **style)
@@ -260,9 +244,9 @@ class Main(tk.Tk):
         self.decrypt=tk.Button(self.buttons_frame, text="Monographs", **style, width=btn_width, height=btn_height, command=make_command(1))
         self.reset_btn=tk.Button(self.buttons_frame, text="Reset Conversions", command=self.reset_changed, **style)
         self.reset_btn.grid(row=1, column=0, sticky="EW")
-##        self.shuffle_btn=tk.Button(self.buttons_frame, text="Shuffle Randomly", command=self.shuffle, **style)
+        self.shuffle_btn=tk.Button(self.buttons_frame, text="Shuffle Randomly", command=self.shuffle, **style)
+        self.shuffle_btn.grid(row=2, column=0, sticky="EW")
         self.normalise_btn=tk.Button(self.buttons_frame, text="Normalise Text", command=self.normalise, **style)
-
         self.normalise_btn.grid(row=1, column=1, sticky="EW")
         self.decrypt.grid(row=0, column=1, sticky="EW")
 ##        self.find=tk.Button(self.buttons_frame, text="Digraphs", **style, width=btn_width, height=btn_height, command=make_command(2))
@@ -329,24 +313,27 @@ class Main(tk.Tk):
         tk.Button(search_possible_subframe, text="→", **style, width=2, command=self.list_possible
                   ).grid(row=0, column=1, sticky="NES")
 
-        possible_subframe=tk.Frame(possible_words_frame, bg=bg)
+        possible_subframe = tk.Frame(possible_words_frame, bg=bg)
         possible_subframe.grid(row=2, column=0, sticky="NS")
-        self.possible=tk.Listbox(possible_subframe, height=15)
+        self.possible_values = tk.Variable(self)
+        self.possible = tk.Listbox(possible_subframe, height=15, listvariable=self.possible_values)
         self.possible.grid(row=0, column=0)
-        self.scrollbar=tk.Scrollbar(possible_subframe, command=self.possible.yview)
+        self.scrollbar = tk.Scrollbar(possible_subframe, command=self.possible.yview)
         self.scrollbar.grid(row=0, column=1, sticky="NSW")
         self.possible.config(yscrollcommand=self.scrollbar.set)
         self.possible.bind("<<ListboxSelect>>", lambda event: self.get_select(event))
 
-        search_type_subframe=tk.Frame(possible_words_frame, bg=bg)
+        search_type_subframe = tk.Frame(possible_words_frame, bg=bg)
         search_type_subframe.grid(row=3, column=0)
-        self.search_type=tk.StringVar(self, value=0)
+        self.search_type = tk.StringVar(self, value=0)
         rbtn_text=("Search each word", "Search plain text")
         for i in range(len(rbtn_text)):
             tk.Radiobutton(search_type_subframe, value=i, text=rbtn_text[i], variable=self.search_type, **style
                            ).grid(row=i, column=0, sticky="W")
+        self.apply_certain = tk.Button(possible_words_frame, text="Apply To Certain", state="disabled", command=self.apply_certain, **style)
+        self.apply_certain.grid(row=4, column=0)
         
-        self.set_letters(conversions(), self.converts)
+        self.set_letters(self.conversions(), self.converts)
 
 
         find_frame=tk.Frame(self, bg=bg)
@@ -365,22 +352,62 @@ class Main(tk.Tk):
         tk.Radiobutton(find_frame, text="In Entry", variable=self.find_in, **style, value=0, command=self.match_finder).grid(row=4, column=0)
         tk.Radiobutton(find_frame, text="In Answer", variable=self.find_in, **style, value=1, command=self.match_finder).grid(row=4, column=1)        
         find_frame.grid(row=4, column=3, columnspan=2)
-
+        
+        self.actions = ActionStack(self)
+        self.bind("<Control-z>", lambda event: self.actions.undo())
+        self.bind("<Control-y>", lambda event: self.actions.redo)
         self.mainloop()
+    
+    def conversions(self):
+        return [alphabet[x] + " -> " + self.changed[x] for x in range(26)] # Call to update whenever
+
+    def encipher(self, text):
+        answer = ""
+        for el in text:
+            if el in alphabet:
+                answer +=  self.changed[alphabet.index(el)]
+            elif el in alphabet.upper():
+                answer +=  self.changed[alphabet.index(el.lower())].upper()
+            else:
+                answer +=  el
+        return answer
+
+    def decipher(self, text):
+        answer = ""
+        for el in text:
+            if el in alphabet:
+                answer +=  alphabet[self.changed.index(el)]
+            elif el in alphabet.upper():
+                answer +=  alphabet[self.changed.index(el.lower())].upper()
+            else:
+                answer +=  el
+        return answer
+
+
+    def set_btn_state(self, btn, state):
+        btn.config(state=state)
+
+    def apply_certain(self):
+        index = self.possible.curselection()[0]
+        print(index)
+        selected_word = self.possible_values.get()[index]
+        for letter in selected_word:
+            self.set_mark(index, 1)
 
     def normalise(self):
         entered_text=self.enter.get("1.0", "end")
         self.set_text(keep(entered_text.upper(), alphabet.upper()), self.enter)
 
-    def shuffle(self):
-        global changed
+    @is_action
+    def shuffle(self):  
         self.marked=[0]*26
-        random.shuffle(changed)
+        random.shuffle(self.changed)
         self.update_all()
+        #self.actions.action()
     
     def update_all(self):
         self.update_marked()
-        self.set_letters(conversions(), self.converts)
+        self.set_letters(self.conversions(), self.converts)
         self.decrypt_current()
     
     def update_marked(self):
@@ -394,6 +421,7 @@ class Main(tk.Tk):
             self.converts.selection_clear(item)
 
     def list_possible(self, event=None):
+        self.set_btn_state(self.apply_certain, "disabled")
         string_entered=self.word_search.get()
         matches=self.find_matches(get(self.enter), string_entered)
 ##        print(matches)
@@ -407,7 +435,7 @@ class Main(tk.Tk):
                 if letter in marked_letters:
 ##                    print("Marked Letter")
 ##                    print(letter)
-                    expected_letter=changed[alphabet.index(letter)]
+                    expected_letter=self.changed[alphabet.index(letter)]
                     actual_letter=string_entered[x]
                     
 ##                    print(letter, "in self.marked")
@@ -468,11 +496,11 @@ class Main(tk.Tk):
     def match_finder(self, *args):
         try:
             if self.find_in.get() == 0:
-                self.highlight_words(self.answer, encipher(self.to_find.get()))
+                self.highlight_words(self.answer, self.encipher(self.to_find.get()))
                 self.highlight_words(self.enter, self.to_find.get())
             else:
                 self.highlight_words(self.answer, self.to_find.get())
-                self.highlight_words(self.enter, decipher(self.to_find.get()))
+                self.highlight_words(self.enter, self.decipher(self.to_find.get()))
             self.ctrlf.config(fg="black")
         except Exception as error: # Invalid regex
             self.ctrlf.config(fg="red")
@@ -491,6 +519,7 @@ class Main(tk.Tk):
         widget.tag_add("selected", index1, index2)
         
     def get_select(self, event): # Activate when listbox item selected
+        self.set_btn_state(self.apply_certain, "normal")
         widget=event.widget
         index=widget.curselection()
         if len(index) == 1:
@@ -498,11 +527,11 @@ class Main(tk.Tk):
             found=widget.get(index).lower()
             print("1:", found, "2:", self.word_search.get())
             for i in range(len(found)):
-                self.switch(self.word_search.get()[i], encipher(found)[i], uses_custom_marking=True)
+                self.switch(self.word_search.get()[i], self.encipher(found)[i], uses_custom_marking=True)
             print(found, self.word_search.get())
             self.update_marked()
-            for letter in found:
-                self.set_mark(alphabet.index(letter), 1)
+            #for letter in found:
+                #self.set_mark(alphabet.index(letter), 1)
             self.decrypt_current()
 
     def on_conversion_select(self, event):
@@ -514,7 +543,7 @@ class Main(tk.Tk):
         self.letter_var1.set(value[0])
             
     def decrypt_current(self):
-        self.set_text(encipher(get(self.enter)), self.answer)
+        self.set_text(self.encipher(get(self.enter)), self.answer)
         self.enter.tag_delete("selected")
         self.answer.tag_delete("selected")
     
@@ -533,18 +562,17 @@ class Main(tk.Tk):
             widget.config(state="disabled")
     
     def set_change(self, plain_txt, group_size):
-        global changed
         self.marked = [0]*26
         tallied=amount(plain_txt, group_size)
 ##        print("TALLIED:", len(tallied))
-##        print(alphabet, changed)
+##        print(alphabet, self.changed)
         self.reset_changed()
-        changed=assign(tallied, group_size)
-        self.order_lbl.config(text=add_spaces(order_rating(changed)))
+        self.changed = assign(tallied, group_size)
+        self.order_lbl.config(text=add_spaces(order_rating(self.changed)))
 ##        print(tallied)
-##        print(changed)
-        self.set_text(encipher(plain_txt), self.answer)
-        self.set_letters(conversions(), self.converts)
+##        print(self.changed)
+        self.set_text(self.encipher(plain_txt), self.answer)
+        self.set_letters(self.conversions(), self.converts)
 
     def return_letter1(self, event):
         if self.letter_var1.get() == "":
@@ -576,23 +604,66 @@ class Main(tk.Tk):
             return True
     
     def reset_changed(self):
-        global changed
-        changed=list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
+        self.changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
         self.update_all()
 
 
     def switch(self, char1, char2, uses_custom_marking=False): # Switch two letters in changed
-        char2_index=changed.index(char2)
-        changed[changed.index(char1)]=changed[changed.index(char2)]
-        changed[char2_index]=char1
-        self.set_letters(conversions(), self.converts)
+        char2_index = self.changed.index(char2)
+        self.changed[self.changed.index(char1)] = self.changed[self.changed.index(char2)]
+        self.changed[char2_index] = char1
+        self.set_letters(self.conversions(), self.converts)
         self.letter_var1.set("")
         self.letter_var2.set("")
         self.decrypt_current() # After switching, decrypt with new
         if self.mark_as_correct.get() and not uses_custom_marking:
             print(char1, char2)
-            self.marked[changed.index(char2)] = 1
+            self.marked[self.changed.index(char2)] = 1
             self.update_marked()
+
+class ActionStack:
+    def __init__(self, parent):
+        self.parent = parent
+        self.stack = []
+        self.save_state()
+        self.position = 1
+    
+    def save_state(self):
+        print("".join(self.parent.changed))
+        self.stack.append({"marked": self.parent.marked, "changed": self.parent.changed[:]})
+
+    def undo(self):
+        print("undo", self.position)
+        if len(self.stack) != 0 and self.position != 0:
+            self.position -= 1
+            self.display_state()
+        print(self.position)
+    
+    def redo(self):
+        print("redo", self.position)
+        if len(self.stack) != 0 and self.position != len(stack) - 1:
+            self.position += 1
+            self.display_state()
+        print(self.position)
+
+    def display_state(self):
+        print(self.position)
+        selected_state = self.stack[self.position - 1]
+        self.parent.changed = selected_state["changed"]
+        self.parent.marked = selected_state["marked"]
+        #print("updating to", selected_state)
+        self.parent.update_all()
+
+    def action(self):
+        print("deleting", self.stack[self.position:])
+        del self.stack[self.position:]
+        self.position += 1
+        print("after deletion", ["".join(el["changed"]) for el in self.stack])
+        self.save_state()
+        print("position is now", self.position)
+        print("saved is now", ["".join(el["changed"]) for el in self.stack])
+        print("id's are", [id(el["changed"]) for el in self.stack])
+
 
 class Graph(tk.Tk):
     def __init__(self):
