@@ -1,9 +1,11 @@
 # https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
+# https://crypto.interactive-maths.com/columnar-transposition-cipher.html#encrypt
 # romeoromeowhereartthou
 # romoeromoewheerarthtouXXX
 # 01243
 # tomato
 # 421053
+# The tomato is a plant in the nightshade family
 
 
 import tkinter as tk
@@ -66,7 +68,7 @@ class App(tk.Tk):
         for r in range(2):
             tk.Button(
                 self.under_enter_frame, text=btn_strings[r],
-                command=lambda: self.update_grid(key=self.key, mode=btn_strings[r]), **style(15)).grid(
+                command=lambda r=r: self.update_grid(key=self.key, mode=btn_strings[r]), **style(15)).grid(
                     row=r, column=3)
 
         self.scroll_canvas = tk.Canvas(width=600, bg=BG)
@@ -100,7 +102,11 @@ class App(tk.Tk):
 
         # Binding
         self.grid_frame.bind("<Configure>", self.on_frame_config)
-        
+        self.output.bind("<Key>", lambda event: "break")
+
+        # Testing
+        self.enter.insert(0.0, "The tomato is a plant in the nightshade family")
+        self.key_entry.insert(0, "tomato")
 
         self.mainloop()
 
@@ -146,18 +152,22 @@ class App(tk.Tk):
         text = self.enter.get("1.0", "end").replace("\n", "").replace(" ", "")
         fill_len = (columns - (len(text) % columns)) % columns
         text += "X" * fill_len
-
+        print(mode)
         letters = [[] for _ in range(columns)]
         reordered_letters = letters[:]
         for c in range(columns):
             for r in range(c, len(text), columns):
                 letters[c].append(text[r])
         print(letters)
+        if mode == "decipher":
 
-        for c in range(len(self.key)):
-            reordered_letters[c] = letters[self.key[c]]
-        self.columns = reordered_letters
-        print(self.columns)
+            for c in range(len(self.key)):
+                reordered_letters[c] = letters[self.key[c]]
+            self.columns = reordered_letters
+        elif mode == "encipher":
+            self.columns = letters
+        else:
+            raise
 
         self.display_grid()   ###################
 
@@ -165,15 +175,13 @@ class App(tk.Tk):
         # Delete current
         for widget in self.grid_frame.winfo_children():
             widget.destroy()
-            
+        print("Columns:", self.columns)
         self.display_top_frames()   ###################
 
         inverted_key = invert_key(self.key)
-        print(self.columns)
         for column in range(len(self.columns)):
             # inverted_key_value = inverted_key[column]
             this_column = self.columns[column]
-            print(this_column)
             for row in range(len(self.columns[column])):
                 text = this_column[row].upper()
                 tk.Label(
@@ -182,10 +190,17 @@ class App(tk.Tk):
         clear_weight(self.grid_frame)
         for column in range(len(self.columns)):
             self.grid_frame.grid_columnconfigure(column, weight=1)
+        self.write_output(*["".join(self.columns[n]).upper() for n in inverted_key])
 
     def display_top_frames(self):
         for column in range(len(self.columns)):
             MoveBtn(self, self.key[column], master=self.grid_frame).grid(row=0, column=column)   ###################
+
+    def write_output(self, *values, end="\n"):
+        print(values)
+        to_write = end.join(values)
+        self.output.delete("1.0", "end")
+        self.output.insert("end", to_write)
 
 class MoveBtn(tk.Frame):
     # ◀▶
@@ -199,6 +214,7 @@ class MoveBtn(tk.Frame):
             tk.Button(self, text=string[c], command=lambda c=c: self.move((-1) ** (1 - c)), **style(9)).grid(row=1, column=c)  ###################
 
     def move(self, offset):
+        print(offset)
         new_pos = (self.index + offset) % len(self.parent.key)
         print("Switching", self.index, new_pos)
         self.parent.key[self.index], self.parent.key[new_pos] = self.parent.key[new_pos], self.parent.key[self.index]
