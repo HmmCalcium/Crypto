@@ -67,6 +67,13 @@ def order_rating(array):
 ##            print(cmp1, cmp2)
     return int(100*score/(len(array)-1))
 
+def remove_duplicates(string):
+    new = ""
+    for letter in string:
+        if letter not in new:
+            new += letter
+    return new
+
 def regex_pos(find, string, mode): # 'find' can be string or regexp. mode=0: string, 1: regexp
     if find  ==  "":
         return []
@@ -238,10 +245,10 @@ class Main(tk.Tk):
 
         btn_width=35
         btn_height=1
-        make_command=lambda size: lambda: self.set_change(get(self.enter), size)
+        #make_command=lambda size: lambda: self.set_change(get(self.enter), size)
         self.decrypt_c=tk.Button(self.buttons_frame, text="Decrypt Using Current", **style, width=btn_width, height=btn_height, command=self.decrypt_current)
         self.decrypt_c.grid(row=0, column=0, sticky="EW")
-        self.decrypt=tk.Button(self.buttons_frame, text="Monographs", **style, width=btn_width, height=btn_height, command=make_command(1))
+        self.decrypt=tk.Button(self.buttons_frame, text="Monographs", **style, width=btn_width, height=btn_height, command=lambda: self.set_change(get(self.enter)))
         self.reset_btn=tk.Button(self.buttons_frame, text="Reset Conversions", command=self.reset_changed, **style)
         self.reset_btn.grid(row=1, column=0, sticky="EW")
         self.shuffle_btn=tk.Button(self.buttons_frame, text="Shuffle Randomly", command=self.shuffle, **style)
@@ -354,8 +361,8 @@ class Main(tk.Tk):
         find_frame.grid(row=4, column=3, columnspan=2)
         
         self.actions = ActionStack(self)
-        self.bind("<Control-z>", lambda event: self.actions.undo())
-        self.bind("<Control-y>", lambda event: self.actions.redo)
+##        self.bind("<Control-z>", lambda event: self.actions.undo())
+##        self.bind("<Control-y>", lambda event: self.actions.redo)
         self.mainloop()
     
     def conversions(self):
@@ -389,16 +396,17 @@ class Main(tk.Tk):
 
     def apply_certain(self):
         index = self.possible.curselection()[0]
-        print(index)
         selected_word = self.possible_values.get()[index]
         for letter in selected_word:
-            self.set_mark(index, 1)
+            print(letter, end=" ")
+            self.set_mark(alphabet.index(letter), 1)
+        self.update_marked()
 
     def normalise(self):
         entered_text=self.enter.get("1.0", "end")
         self.set_text(keep(entered_text.upper(), alphabet.upper()), self.enter)
 
-    @is_action
+    #@is_action
     def shuffle(self):  
         self.marked=[0]*26
         random.shuffle(self.changed)
@@ -409,8 +417,10 @@ class Main(tk.Tk):
         self.update_marked()
         self.set_letters(self.conversions(), self.converts)
         self.decrypt_current()
+        self.set_order_lbl()
     
     def update_marked(self):
+        print("Updating to", self.marked)
         for i in range(len(alphabet)):
             self.converts.itemconfig(i, bg=lb_colours[self.marked[i]])
 
@@ -465,17 +475,17 @@ class Main(tk.Tk):
                 if compare(x) == find and not x in result: # No duplicates
                     result.append(x) # If not already there, add
         elif mode == "1":
-            text=text.replace("\n", "")
+            text = text.replace("\n", "")
             for i in range(len(text) - len(word)):
-                cur_slice=text[i:1 + i + len(word)]
-            if compare(cur_slice) == find:
-                result.append(cur_slice)
+                cur_slice=text[i:i + len(word)]
+                if compare(cur_slice) == find:
+                    result.append(cur_slice)
         return sorted(result) # Makes it easier to navigate
 
     def set_mark(self, index, colour_index):
         if colour_index == "invert":
-            colour_index=1-self.marked[index]
-        self.marked[index]=colour_index
+            colour_index = 1-self.marked[index]
+        self.marked[index] = colour_index
         self.converts.itemconfig(index, bg=lb_colours[colour_index])
 
     def toggle_marked(self):
@@ -520,14 +530,17 @@ class Main(tk.Tk):
         
     def get_select(self, event): # Activate when listbox item selected
         self.set_btn_state(self.apply_certain, "normal")
-        widget=event.widget
-        index=widget.curselection()
+        widget = event.widget
+        index = widget.curselection()
         if len(index) == 1:
 ##            self.set_text(msg, self.error_log)
-            found=widget.get(index).lower()
-            print("1:", found, "2:", self.word_search.get())
+            found = remove_duplicates(widget.get(index).lower())
+            enciphered_found = self.encipher(found)
+            word_entered = remove_duplicates(self.word_search.get())
+            print("1:", found, "2:", word_entered, "3:", enciphered_found)
             for i in range(len(found)):
-                self.switch(self.word_search.get()[i], self.encipher(found)[i], uses_custom_marking=True)
+                if found[i] in alphabet:
+                    self.switch(enciphered_found[i], word_entered[i], uses_custom_marking=True)
             print(found, self.word_search.get())
             self.update_marked()
             #for letter in found:
@@ -546,6 +559,7 @@ class Main(tk.Tk):
         self.set_text(self.encipher(get(self.enter)), self.answer)
         self.enter.tag_delete("selected")
         self.answer.tag_delete("selected")
+        self.set_order_lbl()
     
     def set_letters(self, arr, listbox):
         listbox.delete(0, "end")
@@ -561,14 +575,17 @@ class Main(tk.Tk):
         if is_disabled:
             widget.config(state="disabled")
     
-    def set_change(self, plain_txt, group_size):
+    def set_order_lbl(self):
+        self.order_lbl.config(text=add_spaces(order_rating(self.changed)))
+
+    def set_change(self, plain_txt):
         self.marked = [0]*26
-        tallied=amount(plain_txt, group_size)
+        tallied=amount(plain_txt)
 ##        print("TALLIED:", len(tallied))
 ##        print(alphabet, self.changed)
         self.reset_changed()
-        self.changed = assign(tallied, group_size)
-        self.order_lbl.config(text=add_spaces(order_rating(self.changed)))
+        self.changed = assign(tallied)
+        self.set_order_lbl()
 ##        print(tallied)
 ##        print(self.changed)
         self.set_text(self.encipher(plain_txt), self.answer)
