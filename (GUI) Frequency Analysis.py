@@ -15,9 +15,13 @@ a b c d e f g h i j k l m n o p q r s t u v w x y z
 
 import tkinter as tk
 import tkinter.scrolledtext as tkst
+from _tkinter import TclError
 import re
 from warnings import warn
 import random
+import os
+
+os.chdir(os.path.dirname(__file__))
 
 # Change these depending on state
 WIP = True
@@ -48,6 +52,7 @@ co_nums = ("mono", "di", "tri")
 letter = lambda x: re.match(r"^[a-zA-z]$", x) is not  None  #  Is letter
 keep = lambda arr1, arr2: "".join([x for x in arr1 if x in arr2])
 order_changed = lambda: None
+
 
 def add_spaces(num):
     num=str(num) + "%"
@@ -205,7 +210,7 @@ def assign(arr, group_size=1):
         new_changed[new_changed.index(" ")] = letter # Index gives first position
     return new_changed
 
-def compare(search):
+def numberify(search):
     """Allows you to find if one word can be enciphered to another with substitution.
     This makes a word into a tuple of integers - if a letter has not appeared, 
     it adds its position to numbers. Else, the position of the first
@@ -219,7 +224,7 @@ def compare(search):
         else:
             numbers +=  [x]
         done.append(search[x])
-    return str(numbers)
+    return " ".join(map(str, numbers))
 
 def is_action(func):
     def decorated(self, *args, **kwargs):
@@ -235,10 +240,17 @@ class Main(tk.Tk):
 
         self.changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
 
-        self.enter=tkst.ScrolledText(width=70, height=12, **style) # 12 + 12 + (button height * 2)=26
+        self.enter = tkst.ScrolledText(width=70, height=12, **style) # 12 + 12 + (button height * 2)=26
         self.enter.grid(row=0, column=0, columnspan=3, sticky="EW")
-        self.answer=tkst.ScrolledText(width=70, height=12, state="disabled", **style)
+        self.answer = tkst.ScrolledText(width=70, height=12, state="disabled", **style)
         self.answer.grid(row=2, column=0, columnspan=3, sticky="EW")
+
+        self.enter_select_popup = tk.Menu(self, tearoff=0)
+        self.enter_select_popup.add_command(label="Find possible words", command=self.find_from_entry_selection)
+        self.answer_select_popup = tk.Menu(self, tearoff=0)
+        self.answer_select_popup.add_command(label="Find possible words", command=self.find_from_answer_selection)
+        self.enter.bind("<Button-3>", lambda event: self.create_popup(event, self.enter_select_popup))
+        self.answer.bind("<Button-3>", lambda event: self.create_popup(event, self.answer_select_popup))
 
         self.buttons_frame=tk.Frame(self, bg=bg)
         self.buttons_frame.grid(row=1, column=0, columnspan=3, sticky="EW")
@@ -301,7 +313,7 @@ class Main(tk.Tk):
         self.popup_menu.add_command(label="Select All", command=self.select_all)
         self.popup_menu.add_command(label="Deselect All", command=lambda: self.converts.selection_clear(0, "end"))
         self.popup_menu.add_command(label="Toggle Selection", command=self.select_inverse)
-        self.converts.bind("<Button-3>", self.popup)
+        self.converts.bind("<Button-3>", lambda event: self.create_popup(event, self.popup_menu))
         self.marked=[0]*26
 
 
@@ -468,7 +480,7 @@ class Main(tk.Tk):
         
     def find_matches(self, text, word): # Find matches of word to words in the text
         result=[]
-        find=compare(word)
+        find=numberify(word)
         mode=self.search_type.get()
         print(repr(mode))
         if mode == "0":
@@ -476,13 +488,13 @@ class Main(tk.Tk):
             text=tuple(word.lower() for word in keep(text, alphabet+alphabet.upper()+" ").split())
             print(text)
             for x in text:
-                if compare(x) == find and not x in result: # No duplicates
+                if numberify(x) == find and not x in result: # No duplicates
                     result.append(x) # If not already there, add
         elif mode == "1":
             text = text.replace("\n", "")
             for i in range(len(text) - len(word)):
                 cur_slice=text[i:i + len(word)]
-                if compare(cur_slice) == find:
+                if numberify(cur_slice) == find:
                     result.append(cur_slice)
         return sorted(result) # Makes it easier to navigate
 
@@ -502,11 +514,11 @@ class Main(tk.Tk):
     def select_all(self):
         self.converts.selection_set(0, "end")
     
-    def popup(self, event):
+    def create_popup(self, event, widget):
         try:
-            self.popup_menu.tk_popup(event.x_root, event.y_root, 0)
+            widget.tk_popup(event.x_root, event.y_root, 0)
         finally:
-            self.popup_menu.grab_release()
+            widget.grab_release()
 
     def match_finder(self, *args):
         try:
@@ -632,7 +644,46 @@ class Main(tk.Tk):
     def reset_changed(self):
         self.changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
         self.update_all()
+    
+    def find_from_answer_selection(self):
+        print(self.decipher(self.answer.selection_get()))
+        self.find_from_entry_selection(self.answer)
 
+    def find_from_entry_selection(self, widget=None):
+        if widget is None:
+            widget = self.enter
+        try:
+            selected = widget.selection_get()
+            length = len(selected)
+            if length > 22:
+                return
+        except TclError: #From _tkinter
+            return
+        selected_pattern = numberify(selected)
+        required_letters = {}
+        for index in range(len(selected)):
+            letter_index = alphabet.index(selected[index])
+            if self.marked[letter_index] == 1:
+                required_letters[index] = self.changed[letter_index]
+        lines = {}
+        for folder in {"plain", "numerical"}:
+            with open("words\\" + folder + "\\" + str(length) + ".txt") as file:
+                lines[folder + "_lines"] = [line.rstrip("\n") for line in file.readlines()]
+                print(folder + "_lines")
+        plain_lines = lines["plain_lines"]
+        pattern_lines = lines["numerical_lines"]
+        matching_words = []
+        for i in range(len(pattern_lines)):
+            if pattern_lines[i] == selected_pattern:
+                required_letters_correct = True
+                for index, letter in required_letters.items():
+                    if plain_lines[i][index] != letter:
+                        required_letters_correct = False
+                if required_letters_correct:
+                    matching_words.append(plain_lines[i])
+        # print(matching_words)
+        self.word_search.set(selected)
+        self.set_letters(matching_words, self.possible)
 
     def switch(self, char1, char2, uses_custom_marking=False): # Switch two letters in changed
         char2_index = self.changed.index(char2)
@@ -689,7 +740,6 @@ class ActionStack:
         print("position is now", self.position)
         print("saved is now", ["".join(el["changed"]) for el in self.stack])
         print("id's are", [id(el["changed"]) for el in self.stack])
-
 
 class Graph(tk.Tk):
     def __init__(self):
