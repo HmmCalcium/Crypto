@@ -219,7 +219,7 @@ def compare(search):
         else:
             numbers +=  [x]
         done.append(search[x])
-    return tuple(numbers)
+    return str(numbers)
 
 def is_action(func):
     def decorated(self, *args, **kwargs):
@@ -288,7 +288,7 @@ class Main(tk.Tk):
         self.letter_entry2=tk.Entry(self.switch_frame, **style, textvariable=self.letter_var2, width=2, justify="center")
         self.letter_entry2.grid(row=2, column=1)
         self.letter_entry2.bind("<Return>", self.return_letter2)
-        self.switch_btn=tk.Button(self.switch_frame, text="Switch", **style, state="disabled", command=lambda: self.switch(self.letter_var1.get(), self.letter_var2.get()))
+        self.switch_btn=tk.Button(self.switch_frame, text="Switch", **style, state="disabled", command=self.switch_entered)
         self.switch_btn.grid(row=3, column=0, columnspan=2)
 
         
@@ -328,7 +328,7 @@ class Main(tk.Tk):
         self.scrollbar = tk.Scrollbar(possible_subframe, command=self.possible.yview)
         self.scrollbar.grid(row=0, column=1, sticky="NSW")
         self.possible.config(yscrollcommand=self.scrollbar.set)
-        self.possible.bind("<<ListboxSelect>>", lambda event: self.get_select(event))
+        self.possible.bind("<<ListboxSelect>>", lambda event: self.on_possible_select(event))
 
         search_type_subframe = tk.Frame(possible_words_frame, bg=bg)
         search_type_subframe.grid(row=3, column=0)
@@ -365,6 +365,9 @@ class Main(tk.Tk):
 ##        self.bind("<Control-y>", lambda event: self.actions.redo)
         self.mainloop()
     
+    def switch_entered(self):
+        self.switch(self.letter_var1.get(), self.letter_var2.get())
+
     def conversions(self):
         return [alphabet[x] + " -> " + self.changed[x] for x in range(26)] # Call to update whenever
 
@@ -396,7 +399,8 @@ class Main(tk.Tk):
 
     def apply_certain(self):
         index = self.possible.curselection()[0]
-        selected_word = self.possible_values.get()[index]
+        selected_word = self.possible_values.get()[index].lower()
+        print("Word:", selected_word)
         for letter in selected_word:
             print(letter, end=" ")
             self.set_mark(alphabet.index(letter), 1)
@@ -493,6 +497,7 @@ class Main(tk.Tk):
 ##5            print(alphabet[sel])
             self.set_mark(sel, "invert")
         self.converts.selection_clear(0, "end")
+        print(self.marked)
     
     def select_all(self):
         self.converts.selection_set(0, "end")
@@ -528,7 +533,8 @@ class Main(tk.Tk):
     def highlight(self, widget, index1="1.0", index2="1.0"): # Highlight between two points
         widget.tag_add("selected", index1, index2)
         
-    def get_select(self, event): # Activate when listbox item selected
+    def on_possible_select(self, event): # Activate when listbox item selected
+        print("before:", self.marked)
         self.set_btn_state(self.apply_certain, "normal")
         widget = event.widget
         index = widget.curselection()
@@ -540,12 +546,15 @@ class Main(tk.Tk):
             print("1:", found, "2:", word_entered, "3:", enciphered_found)
             for i in range(len(found)):
                 if found[i] in alphabet:
+                    print(enciphered_found[i], word_entered[i])
                     self.switch(enciphered_found[i], word_entered[i], uses_custom_marking=True)
             print(found, self.word_search.get())
-            self.update_marked()
+##            self.update_marked()
             #for letter in found:
                 #self.set_mark(alphabet.index(letter), 1)
             self.decrypt_current()
+            self.update_marked()
+        print("after:", self.marked)
 
     def on_conversion_select(self, event):
         return
