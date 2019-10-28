@@ -214,7 +214,7 @@ def numberify(search):
     """Allows you to find if one word can be enciphered to another with substitution.
     This makes a word into a tuple of integers - if a letter has not appeared, 
     it adds its position to numbers. Else, the position of the first
-    appearance of that letter: "morning" -> (0, 1, 2, 3, 4, 3, 6) - 'n' appears twice"""
+    appearance of that letter: "morning" -> "0 1 2 3 4 3 6" - 'n' appears twice"""
     search=keep(search.lower(), alphabet)
     numbers=[] # Answer
     done=[] # Leters that have already appeared
@@ -238,12 +238,18 @@ class Main(tk.Tk):
         self.config(bg=bg)
         self.title(title)
 
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+
+
         self.changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
 
-        self.enter = tkst.ScrolledText(width=70, height=12, **style) # 12 + 12 + (button height * 2)=26
+        self.enter = tkst.ScrolledText(width=70, height=13, **style) # 12 + 12 + (button height * 2)=26
         self.enter.grid(row=0, column=0, columnspan=3, sticky="EW")
-        self.answer = tkst.ScrolledText(width=70, height=12, state="disabled", **style)
+        self.answer = tkst.ScrolledText(width=70, height=13, state="disabled", **style)
         self.answer.grid(row=2, column=0, columnspan=3, sticky="EW")
+        self.answer.bind("<Key>", lambda event: "break")
 
         self.enter_select_popup = tk.Menu(self, tearoff=0)
         self.enter_select_popup.add_command(label="Find possible words", command=self.find_from_entry_selection)
@@ -252,20 +258,20 @@ class Main(tk.Tk):
         self.enter.bind("<Button-3>", lambda event: self.create_popup(event, self.enter_select_popup))
         self.answer.bind("<Button-3>", lambda event: self.create_popup(event, self.answer_select_popup))
 
-        self.buttons_frame=tk.Frame(self, bg=bg)
+        self.buttons_frame = tk.Frame(self, bg=bg)
         self.buttons_frame.grid(row=1, column=0, columnspan=3, sticky="EW")
 
-        btn_width=35
-        btn_height=1
+        btn_width = 35
+        btn_height = 1
         #make_command=lambda size: lambda: self.set_change(get(self.enter), size)
-        self.decrypt_c=tk.Button(self.buttons_frame, text="Decrypt Using Current", **style, width=btn_width, height=btn_height, command=self.decrypt_current)
+        self.decrypt_c = tk.Button(self.buttons_frame, text="Decrypt Using Current", **style, width=btn_width, height=btn_height, command=self.decrypt_current)
         self.decrypt_c.grid(row=0, column=0, sticky="EW")
-        self.decrypt=tk.Button(self.buttons_frame, text="Monographs", **style, width=btn_width, height=btn_height, command=lambda: self.set_change(get(self.enter)))
-        self.reset_btn=tk.Button(self.buttons_frame, text="Reset Conversions", command=self.reset_changed, **style)
+        self.decrypt = tk.Button(self.buttons_frame, text="Monographs", **style, width=btn_width, height=btn_height, command=lambda: self.set_change(get(self.enter)))
+        self.reset_btn = tk.Button(self.buttons_frame, text="Reset Conversions", command=self.reset_changed, **style)
         self.reset_btn.grid(row=1, column=0, sticky="EW")
-        self.shuffle_btn=tk.Button(self.buttons_frame, text="Shuffle Randomly", command=self.shuffle, **style)
+        self.shuffle_btn = tk.Button(self.buttons_frame, text="Shuffle Randomly", command=self.shuffle, **style)
         self.shuffle_btn.grid(row=2, column=0, sticky="EW")
-        self.normalise_btn=tk.Button(self.buttons_frame, text="Normalise Text", command=self.normalise, **style)
+        self.normalise_btn = tk.Button(self.buttons_frame, text="Normalise Text", command=self.normalise, **style)
         self.normalise_btn.grid(row=1, column=1, sticky="EW")
         self.decrypt.grid(row=0, column=1, sticky="EW")
 ##        self.find=tk.Button(self.buttons_frame, text="Digraphs", **style, width=btn_width, height=btn_height, command=make_command(2))
@@ -275,46 +281,54 @@ class Main(tk.Tk):
 ##        tk.Message(text="""Made by Alex Scorza. This project is my own work, but feel free to use and modify it!""", 
 ##                   **style, justify="center", fg="# 464647", width=200
 ##                   ).grid(row=4, column=0, rowspan=3)
-        self.misc_frame=tk.Frame(bg=bg)
+        self.misc_frame = tk.Frame(bg=bg)
         self.misc_frame.grid(row=4, column=0, rowspan=3)
         tk.Label(self.misc_frame, **style, text="Order rating (-100 to 100):", justify="center").grid(row=0, column=0)
-        self.order_lbl=tk.Label(self.misc_frame, **style, text=" 100%")
+        self.order_lbl = tk.Label(self.misc_frame, **style, text=" 100%")
         self.order_lbl.grid(row=0, column=1)
         tk.Label(self.misc_frame, **style, text="Errors:", justify="right").grid(row=1, column=0, columnspan=2)
-        self.error_log=tk.Text(self.misc_frame, width=30, height=2, font=font, bg="#EFEFEF", state="disabled", fg="#c90000")
+        self.error_log = tk.Text(self.misc_frame, width=30, height=2, font=font, bg="#EFEFEF", state="disabled", fg="#c90000")
         self.error_log.grid(row=2, column=0, columnspan=2)
 
         
-        self.switch_frame=tk.Frame(bg=bg)
+        self.switch_frame = tk.Frame(bg=bg)
         self.switch_frame.grid(row=4, column=1)
         tk.Label(self.switch_frame, **style, text="Enter two letters below to switch them").grid(row=0, column=0, columnspan=2, sticky="EW")
-        self.mark_as_correct=tk.BooleanVar(self, value=True)
-        tk.Checkbutton(self.switch_frame, **style, text="Mark second letter as correct", variable=self.mark_as_correct).grid(row=1, column=0, columnspan=2)
-        self.letter_var1=tk.StringVar(self)
-        self.letter_var2=tk.StringVar(self)
+        self.mark_as_correct = tk.BooleanVar(self, value=True)
+        tk.Checkbutton(self.switch_frame, **style, text="Mark second letter as correct?", variable=self.mark_as_correct).grid(row=1, column=0, columnspan=2)
+        self.letter_var1 = tk.StringVar(self)
+        self.letter_var2 = tk.StringVar(self)
         self.letter_var1.trace("w", self.check_letter1)
         self.letter_var2.trace("w", self.check_letter2)
-        self.letter_entry1=tk.Entry(self.switch_frame, **style, textvariable=self.letter_var1, width=2, justify="center")
+        self.letter_entry1 = tk.Entry(self.switch_frame, **style, textvariable=self.letter_var1, width=2, justify="center")
         self.letter_entry1.grid(row=2, column=0)
         self.letter_entry1.bind("<Return>", self.return_letter1)
-        self.letter_entry2=tk.Entry(self.switch_frame, **style, textvariable=self.letter_var2, width=2, justify="center")
+        self.letter_entry2 = tk.Entry(self.switch_frame, **style, textvariable=self.letter_var2, width=2, justify="center")
         self.letter_entry2.grid(row=2, column=1)
         self.letter_entry2.bind("<Return>", self.return_letter2)
-        self.switch_btn=tk.Button(self.switch_frame, text="Switch", **style, state="disabled", command=self.switch_entered)
+        self.switch_btn = tk.Button(self.switch_frame, text="Switch", **style, state="disabled", command=self.switch_entered)
         self.switch_btn.grid(row=3, column=0, columnspan=2)
 
         
-        self.converts=tk.Listbox(self, width=10, font=font, bg=lb_colours[0], selectmode="multiple")
-        self.converts.grid(row=0, column=3, rowspan=3, sticky="NS")
+        self.conversions_column_frame = tk.Frame(self, bg=bg)
+        self.conversions_column_frame.grid(row=0, column=3, rowspan=3, sticky="NS")
+
+        self.converts = tk.Listbox(self.conversions_column_frame, width=10, height=26, font=font, bg=lb_colours[0], selectmode="multiple")
+        self.converts.grid(row=0, column=0, sticky="NS")
         self.converts.bind("<<ListboxSelect>>", self.on_conversion_select)
         self.converts.bind("<FocusOut>", lambda event: self.converts.selection_clear(0, "end"))
-        self.popup_menu=tk.Menu(self, tearoff=0)
+        self.popup_menu = tk.Menu(self, tearoff=0)
         self.popup_menu.add_command(label="Toggle Marking", command=self.toggle_marked)
         self.popup_menu.add_command(label="Select All", command=self.select_all)
         self.popup_menu.add_command(label="Deselect All", command=lambda: self.converts.selection_clear(0, "end"))
         self.popup_menu.add_command(label="Toggle Selection", command=self.select_inverse)
         self.converts.bind("<Button-3>", lambda event: self.create_popup(event, self.popup_menu))
-        self.marked=[0]*26
+        self.marked = [0]*26
+
+        tk.Message(self.conversions_column_frame, text="Highlight above in textboxes?", width=100, **style).grid(row=1, column=0)
+        self.highlight_text = tk.BooleanVar(self, value=True)
+        self.highlight_text_cbtn = tk.Checkbutton(self.conversions_column_frame, variable=self.highlight_text, **style)
+        self.highlight_text_cbtn.grid(row=2, column=0)
 
 
         possible_words_frame=tk.Frame(bg=bg)
@@ -424,19 +438,25 @@ class Main(tk.Tk):
 
     #@is_action
     def shuffle(self):  
-        self.marked=[0]*26
-        random.shuffle(self.changed)
+        uncertain_indexes = [i for i in range(26) if self.marked[i] == 0]
+        new_letters = [self.changed[i] for i in uncertain_indexes]
+        random.shuffle(new_letters)
+        # print(new_letters, len(new_letters))
+        # print(uncertain_indexes, len(new_letters))
+        for i in range(len(uncertain_indexes)):
+            self.changed[uncertain_indexes[i]] = new_letters[i]
         self.update_all()
+
         #self.actions.action()
     
     def update_all(self):
-        self.update_marked()
         self.set_letters(self.conversions(), self.converts)
+        self.update_marked()
         self.decrypt_current()
         self.set_order_lbl()
     
     def update_marked(self):
-        print("Updating to", self.marked)
+        # print("Updating to", self.marked)
         for i in range(len(alphabet)):
             self.converts.itemconfig(i, bg=lb_colours[self.marked[i]])
 
