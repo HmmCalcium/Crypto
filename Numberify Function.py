@@ -1,21 +1,19 @@
 #Alex Scorza
-words = ["ifmmp", "uifsf", "ipx", "bsf", "zpv", "epjoh", "upebz","aoxxizzyy"]
-def compare(search):
-    numbers = []
-    done = []
-    x = 0
-    while x < len(search):
+def numberify(search):
+    numbers=[] # Answer
+    done=[] # Letters that have already appeared
+    for x in range(len(search)):
         if search[x] in done:
-            numbers.append(done.index(search[x]))
+            numbers +=  [done.index(search[x])]
         else:
-            numbers.append(x)
+            numbers +=  [x]
         done.append(search[x])
-        x += 1
-    for x in range(1,len(numbers)):
-        numbers[0] = str(numbers[0])+str(numbers[x])
-    return(numbers[0])
+    return " ".join(map(str, numbers))
 
 
-for x in range(0, len(words)):
-    if compare("committee") == compare(words[x]):
-        print(words[x])
+if __name__ == "__main__":
+    words = ["ifmmp", "uifsf", "ipx", "bsf", "zpv", "epjoh", "upebz","aoxxizzyy"]
+    comparison = numberify("committee")
+    for x in range(0, len(words)):
+        if comparison == numberify(words[x]):
+            print(words[x])
