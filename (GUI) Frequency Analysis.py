@@ -18,6 +18,7 @@ import re
 from warnings import warn
 import random
 import os
+import itertools
 
 os.chdir(os.path.dirname(__file__))
 
@@ -46,17 +47,17 @@ tri = ("the", "and", "tha", "ent", "ion", "tio", "for", "nce", "has", "nce", "ti
 
 co_nums = ("mono", "di", "tri")
 
-#changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
+# changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
 letter = lambda x: re.match(r"^[a-zA-z]$", x) is not  None  #  Is letter
 keep = lambda arr1, arr2: "".join([x for x in arr1 if x in arr2])
 order_changed = lambda: None
-
 
 def fact(n):
     sum_ = 1
     for i in range(1, n + 1):
         sum_ *= i
     return sum_
+
 
 def p(n):
     if n < 8:
@@ -67,24 +68,34 @@ def p(n):
     if n < 0:
         result = "-" + result
     return result
-    
+
+
+def index_all(array, element):
+    indexes = []
+    for i in range(len(array)):
+        if array[i] == element:
+            indexes.append(i)
+    return indexes
+
 def add_spaces(num):
-    num=str(num) + "%"
-    num=" "*(5 - len(num)) + num
+    num = str(num) + "%"
+    num = " " * (5 - len(num)) + num
     return num
 
+
 def order_rating(array):
-    score=0
+    score = 0
     for i in range(len(array)-1):
-        cmp1=array[i]
-        cmp2=array[(i+1)%len(array)]
+        cmp1 = array[i]
+        cmp2 = array[(i + 1) % len(array)]
         if cmp1 != cmp2:
             if cmp1 > cmp2:
                 score -= 1
             else:
                 score += 1
 ##            print(cmp1, cmp2)
-    return int(100*score/(len(array)-1))
+    return int(100 * score / (len(array) - 1))
+
 
 def remove_duplicates(string):
     new = ""
@@ -92,6 +103,7 @@ def remove_duplicates(string):
         if letter not in new:
             new += letter
     return new
+
 
 def regex_pos(find, string, mode): # 'find' can be string or regexp. mode=0: string, 1: regexp
     if find  ==  "":
@@ -103,8 +115,10 @@ def regex_pos(find, string, mode): # 'find' can be string or regexp. mode=0: str
             return [x.span() for x in re.compile(find).finditer(string)]
             # Index positions were regexp matches - span() is start() and end() in a tuple
 
+
 def get(scrolled_text):
         return scrolled_text.get("1.0", "end")
+
 
 def is_regex(string): # If vaild regexp
     try:
@@ -113,12 +127,14 @@ def is_regex(string): # If vaild regexp
     except:
         return False
 
+
 def find_pos(line_list, regex, mode): # line_list example: ("hello there", "howdy parter")
     result=[]
     for line_num in range(len(line_list)):
         for letter_pos in regex_pos(regex, line_list[line_num], mode): # example of letter_pos: (3, 6), starting and finishing index
             result +=  (("{}.{}".format(line_num+1, letter_pos[0]), "{}.{}".format(line_num+1, letter_pos[1])), )
     return tuple(result)
+
 
 def set_to_letter(string):
     if string == "":
@@ -127,6 +143,7 @@ def set_to_letter(string):
     if string[0].lower() not in alphabet:
         string="" # Only allowed if letter
     return string.lower()
+
 
 def order_dict(dictionary):
 ##    print("dict:", dictionary)
@@ -157,6 +174,7 @@ def amount(string, group_size=1): # Dictionary with numbers of each letter
                 amounts[el]=1
     return amounts            
 
+
 def _assign(arr, group_size=1): # Dictionary with each letter's frequency
     new=[""]*26
     for i in range(26):
@@ -164,6 +182,7 @@ def _assign(arr, group_size=1): # Dictionary with each letter's frequency
         new[hi]=mono[i] # Set highest to highest remaining in most frequent letters
         arr[hi]=-1 # Won't be reused but deleting will reduce list lenght and cause index error
     return new
+
 
 def _assign(arr, group_size=1):
     selected_var=co_nums[group_size-1]
@@ -204,6 +223,7 @@ def _assign(arr, group_size=1):
 ##    print(alphabet, len(set1), changed, len(set2), set1 == set2, set2 - set1)
     return new_changed
 
+
 def assign(arr, group_size=1):
     group_size = 1
     selected_var = co_nums[group_size-1]
@@ -223,6 +243,7 @@ def assign(arr, group_size=1):
     for letter in (remaining_alphabet):
         new_changed[new_changed.index(" ")] = letter # Index gives first position
     return new_changed
+
 
 def numberify(search):
     """Allows you to find if one word can be enciphered to another with substitution.
@@ -384,13 +405,15 @@ class Main(tk.Tk):
         self.permutations_lbl = tk.Label(possible_words_frame, **style)
         self.show_permutations()
         self.permutations_lbl.grid(row=5, column=0)
+        self.brute_force_btn = tk.Button(possible_words_frame, text="Begin Brute Force", command=self.find_all_permutations, **style)
+        self.brute_force_btn.grid(row=6, column=0)
         
         self.set_letters(self.conversions(), self.converts)
 
-        find_frame=tk.Frame(self, bg=bg)
-        self.word_option=tk.BooleanVar(find_frame, value=0) # Needs to be accessible in self.match_finder
-        word_options=("Enter a string to match", "Enter a regexp to match")
-        instruct=tk.Label(find_frame, text=word_options[0], **style)
+        find_frame = tk.Frame(self, bg=bg)
+        self.word_option = tk.BooleanVar(find_frame, value=0) # Needs to be accessible in self.match_finder
+        word_options = ("Enter a string to match", "Enter a regexp to match")
+        instruct = tk.Label(find_frame, text=word_options[0], **style)
         instruct.grid(row=0, column=0, columnspan=2)
         tk.Checkbutton(find_frame, text="Use regular expressions?", variable=self.word_option, command=lambda: [instruct.config(text=word_options[self.word_option.get()], **style), self.match_finder()]).grid(row=5, column=0, columnspan=2)
         self.to_find=tk.StringVar(self)
@@ -431,13 +454,15 @@ class Main(tk.Tk):
     def conversions(self):
         return [alphabet[x] + " -> " + self.changed[x] for x in range(26)] # Call to update whenever
 
-    def encipher(self, text):
+    def encipher(self, text, key=None):
+        if key is None:
+            key = self.changed
         answer = ""
         for el in text:
             if el in alphabet:
-                answer +=  self.changed[alphabet.index(el)]
+                answer +=  key[alphabet.index(el)]
             elif el in alphabet.upper():
-                answer +=  self.changed[alphabet.index(el.lower())].upper()
+                answer +=  key[alphabet.index(el.lower())].upper()
             else:
                 answer +=  el
         return answer
@@ -470,13 +495,42 @@ class Main(tk.Tk):
         entered_text=self.enter.get("1.0", "end")
         self.set_text(keep(entered_text.upper(), alphabet.upper()), self.enter)
 
+    def find_all_permutations(self):
+        word = self.word_search.get()
+        uncertain_indexes, new_letters = self.find_uncertain_letters()
+        print(uncertain_indexes, new_letters, sep="\n")
+        index_permutations = tuple(itertools.permutations(uncertain_indexes))
+        letter_permutations = tuple(itertools.permutations(new_letters))
+        print(index_permutations, letter_permutations, sep="\n")
+        original_text = self.encipher(keep(get(self.enter).lower(), alphabet))
+        indexes_to_edit = {}
+        for letter in new_letters:
+            indexes_to_edit[letter] = index_all(original_text, letter)
+        print("Indexes to edit:", indexes_to_edit)
+        print(original_text)
+        uncertain_count = self.marked.count(0)
+        for i in range(fact(uncertain_count)):
+            print(index_permutations[i])
+            new_text = list(original_text)
+            for x in range(uncertain_count):
+                print(new_letters[x], indexes_to_edit[new_letters[x]])
+                for index in indexes_to_edit[new_letters[x]]:
+                    new_text[index] = letter_permutations[i][x]
+            new_text = "".join(new_text)
+            print(new_text)
+            
     #@is_action
     def shuffle(self):  
+        uncertain_indexes, new_letters = self.find_uncertain_letters()
+        random.shuffle(new_letters)
+        self.set_new_uncertain(uncertain_indexes, new_letters)
+    
+    def find_uncertain_letters(self):
         uncertain_indexes = [i for i in range(26) if self.marked[i] == 0]
         new_letters = [self.changed[i] for i in uncertain_indexes]
-        random.shuffle(new_letters)
-        # print(new_letters, len(new_letters))
-        # print(uncertain_indexes, len(new_letters))
+        return (uncertain_indexes, new_letters)
+
+    def set_new_uncertain(self, uncertain_indexes, new_letters):
         for i in range(len(uncertain_indexes)):
             self.changed[uncertain_indexes[i]] = new_letters[i]
         self.update_all()
