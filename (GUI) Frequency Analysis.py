@@ -52,6 +52,22 @@ keep = lambda arr1, arr2: "".join([x for x in arr1 if x in arr2])
 order_changed = lambda: None
 
 
+def fact(n):
+    sum_ = 1
+    for i in range(1, n + 1):
+        sum_ *= i
+    return sum_
+
+def p(n):
+    if n < 8:
+        return str(fact(n))
+    n = fact(n)
+    digit1 = str(abs(n))[0]
+    result = digit1 + "e" + str(len(str(abs(n))))
+    if n < 0:
+        result = "-" + result
+    return result
+    
 def add_spaces(num):
     num=str(num) + "%"
     num=" "*(5 - len(num)) + num
@@ -365,6 +381,9 @@ class Main(tk.Tk):
                            ).grid(row=i, column=0, sticky="W")
         self.apply_certain = tk.Button(possible_words_frame, text="Apply To Certain", state="disabled", command=self.apply_certain, **style)
         self.apply_certain.grid(row=4, column=0)
+        self.permutations_lbl = tk.Label(possible_words_frame, **style)
+        self.show_permutations()
+        self.permutations_lbl.grid(row=5, column=0)
         
         self.set_letters(self.conversions(), self.converts)
 
@@ -398,9 +417,13 @@ class Main(tk.Tk):
         self.mainloop()
 
     def initiate_test(self):
-        self.word_search.set("hello")
-##        self.word_search.set(alphabet)
-##        self.possible.insert("end", "".join(reversed(alphabet)))
+##        self.word_search.set("hello")
+        self.word_search.set(alphabet)
+        self.possible.insert("end", "".join(reversed(alphabet)))
+        return
+
+    def show_permutations(self):
+        self.permutations_lbl.config(text="Permutations:" + p(self.marked.count(0)))
     
     def switch_entered(self):
         self.switch(self.letter_var1.get(), self.letter_var2.get())
@@ -473,6 +496,7 @@ class Main(tk.Tk):
         # print("Updating to", self.marked)
         for i in range(len(alphabet)):
             self.converts.itemconfig(i, bg=lb_colours[self.marked[i]])
+        self.show_permutations()
 
     def select_inverse(self):
         selection=self.converts.curselection()
@@ -545,6 +569,7 @@ class Main(tk.Tk):
             colour_index = 1-self.marked[index]
         self.marked[index] = colour_index
         self.converts.itemconfig(index, bg=lb_colours[colour_index])
+        self.show_permutations()
 
     def toggle_marked(self):
         for sel in self.converts.curselection():
@@ -645,13 +670,16 @@ class Main(tk.Tk):
             listbox.insert("end", x)
 
     def set_text(self, value, widget):
-        is_disabled=widget.cget("state") == "disabled"
+        is_disabled = widget.cget("state") == "disabled"
         if is_disabled:
-            widget.config(state="normal")
+            widget.config(state = "normal")
         widget.delete("1.0", "end")
         widget.insert("end", value)
         if is_disabled:
-            widget.config(state="disabled")
+            widget.config(state = "disabled")
+
+    def error(self, text):
+        self.set_text(text, self.error_log)
     
     def set_order_lbl(self):
         self.order_lbl.config(text=add_spaces(order_rating(self.changed)))
