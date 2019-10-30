@@ -583,6 +583,8 @@ class Main(tk.Tk):
         for i in range(len(alphabet)):
             self.converts.itemconfig(i, bg=lb_colours[self.marked[i]])
         self.show_permutations()
+        self.highlight_text_widgets()
+
 
     def select_inverse(self):
         selection=self.converts.curselection()
@@ -619,7 +621,7 @@ class Main(tk.Tk):
             if not el in no_dup_matches:
                 no_dup_matches.append(el)
         self.set_letters(no_dup_matches, self.possible)
-        for i in range(len(matches)):
+        for i in range(len(no_dup_matches)):
 ##            print(i, matches[i])
             if i in invalid_matches:
                 self.possible.itemconfig(i, bg=err_colour)
@@ -667,7 +669,9 @@ class Main(tk.Tk):
 ##5            print(alphabet[sel])
             self.set_mark(sel, "invert")
         self.converts.selection_clear(0, "end")
+        
         print(self.marked)
+        self.highlight_text_widgets()
 
     
     def select_all(self):
@@ -695,18 +699,30 @@ class Main(tk.Tk):
 ##            print(error)
 
         
-    def highlight_words(self, widget, word): # Find all points to highlight and highlight them
+    def highlight_words(self, widget, *words, background="yellow", display_matches=True): # Find all points to highlight and highlight them
         widget.tag_delete("selected")
-        widget.tag_configure("selected", background="yellow")
-        positions=find_pos(get(widget).split("\n"), word, self.word_option.get())
-        # 'self.word_option.get()' is whether is looks for string (0/False) or regexp (1/True)
-        for pos in positions:
-            self.highlight(widget, *pos)
-        self.match_num.config(text="Matches: "+str(len(positions)))
+        widget.tag_configure("selected", background=background)
+        print(words)
+        positions = []
+        for word in words:
+            positions = find_pos(get(widget).split("\n"), word, self.word_option.get())
+            # 'self.word_option.get()' is whether is looks for string (0/False) or regexp (1/True)
+            for pos in positions:
+                self.highlight(widget, *pos)
+        if display_matches:
+            self.match_num.config(text = "Matches: "+str(len(positions)))
 
         
     def highlight(self, widget, index1="1.0", index2="1.0"): # Highlight between two points
         widget.tag_add("selected", index1, index2)
+
+
+    def highlight_text_widgets(self):
+        to_highlight = []
+        for i in range(26):
+            if self.marked[i] == 1:
+                to_highlight.append(self.changed[i])
+        self.highlight_words(self.answer, *to_highlight, background=lb_colours[1])
 
         
     def on_possible_select(self, event): # Activate when listbox item selected
@@ -750,9 +766,9 @@ class Main(tk.Tk):
 
     def on_conversion_select(self, event):
         return
-        widget=event.widget
-        index=int(widget.curselection()[0])
-        value=widget.get(index)
+        widget = event.widget
+        index = int(widget.curselection()[0])
+        value = widget.get(index)
         print(index, value)
         self.letter_var1.set(value[0])
 
@@ -867,7 +883,6 @@ class Main(tk.Tk):
         for folder in {"plain", "numerical"}:
             with open("words\\" + folder + "\\" + str(length) + ".txt") as file:
                 lines[folder + "_lines"] = [line.rstrip("\n") for line in file.readlines()]
-                print(folder + "_lines")
         plain_lines = lines["plain_lines"]
         pattern_lines = lines["numerical_lines"]
         matching_words = []
