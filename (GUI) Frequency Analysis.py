@@ -19,6 +19,7 @@ from warnings import warn
 import random
 import os
 import itertools
+import timeit
 
 os.chdir(os.path.dirname(__file__))
 
@@ -134,6 +135,14 @@ def find_pos(line_list, regex, mode): # line_list example: ("hello there", "howd
         for letter_pos in regex_pos(regex, line_list[line_num], mode): # example of letter_pos: (3, 6), starting and finishing index
             result +=  (("{}.{}".format(line_num+1, letter_pos[0]), "{}.{}".format(line_num+1, letter_pos[1])), )
     return tuple(result)
+
+
+def replace_letters(uncertain_count, new_letters, original_text, this_permutation):
+        new_text = list(original_text)
+        for x in range(uncertain_count):
+            for index in indexes_to_edit[new_letters[x]]:
+                new_text[index] = this_permutation[x]
+        return "".join(new_text)
 
 
 def set_to_letter(string):
@@ -441,8 +450,11 @@ class Main(tk.Tk):
 
     def initiate_test(self):
 ##        self.word_search.set("hello")
-        self.word_search.set(alphabet)
-        self.possible.insert("end", "".join(reversed(alphabet)))
+##        self.word_search.set("ab")
+##        self.enter.insert("end", "abc")
+##        self.possible.insert("end", "".join(reversed(alphabet)))
+##        self.marked = [0] * 3 + [1] * 23
+##        self.update_marked()
         return
 
     def show_permutations(self):
@@ -492,42 +504,59 @@ class Main(tk.Tk):
         self.update_marked()
 
     def normalise(self):
-        entered_text=self.enter.get("1.0", "end")
+        entered_text = self.enter.get("1.0", "end")
         self.set_text(keep(entered_text.upper(), alphabet.upper()), self.enter)
 
     def find_all_permutations(self):
+        def contains(word, string):
+            if self.search_type.get() == "0":
+                string = keep(string.lower(), alphabet).split(" ")
+                return word in string
+            else:
+                return word in string
+                
         word = self.word_search.get()
         uncertain_indexes, new_letters = self.find_uncertain_letters()
         print(uncertain_indexes, new_letters, sep="\n")
         index_permutations = tuple(itertools.permutations(uncertain_indexes))
         letter_permutations = tuple(itertools.permutations(new_letters))
         print(index_permutations, letter_permutations, sep="\n")
-        original_text = self.encipher(keep(get(self.enter).lower(), alphabet))
+        original_text = self.encipher(keep(get(self.enter).lower(), " " + alphabet))
         indexes_to_edit = {}
         for letter in new_letters:
             indexes_to_edit[letter] = index_all(original_text, letter)
         print("Indexes to edit:", indexes_to_edit)
-        print(original_text)
+        print("Original:", original_text)
         uncertain_count = self.marked.count(0)
-        for i in range(fact(uncertain_count)):
-            print(index_permutations[i])
+        matches = set()
+        for i in range(1, fact(uncertain_count)): # First permutation same as orignal
             new_text = list(original_text)
             for x in range(uncertain_count):
-                print(new_letters[x], indexes_to_edit[new_letters[x]])
                 for index in indexes_to_edit[new_letters[x]]:
                     new_text[index] = letter_permutations[i][x]
             new_text = "".join(new_text)
-            print(new_text)
-            
-    #@is_action
+            if contains(word, new_text):
+                to_add = list(alphabet)
+                this_index_permutation = index_permutations[i]
+                for index in range(uncertain_count):
+                    to_add[uncertain_indexes[index]] = alphabet[this_index_permutation[index]]
+                to_add = "".join(to_add)
+                matches.add(to_add)
+        print(tuple(sorted(matches)))
+        self.set_letters([alphabet] + list(sorted(matches)), self.possible)
+        self.saved_word_entered = alphabet
+        self.word_search.set(alphabet)
+    
     def shuffle(self):  
         uncertain_indexes, new_letters = self.find_uncertain_letters()
         random.shuffle(new_letters)
         self.set_new_uncertain(uncertain_indexes, new_letters)
+
     
     def find_uncertain_letters(self):
         uncertain_indexes = [i for i in range(26) if self.marked[i] == 0]
         new_letters = [self.changed[i] for i in uncertain_indexes]
+
         return (uncertain_indexes, new_letters)
 
     def set_new_uncertain(self, uncertain_indexes, new_letters):
@@ -536,15 +565,18 @@ class Main(tk.Tk):
         self.update_all()
 
         #self.actions.action()
+
     
     def update_all(self):
         self.update_conversions()
         self.decrypt_current()
         self.set_order_lbl()
 
+
     def update_conversions(self):
         self.set_letters(self.conversions(), self.converts)
         self.update_marked()
+
     
     def update_marked(self):
         # print("Updating to", self.marked)
@@ -557,6 +589,7 @@ class Main(tk.Tk):
         self.converts.selection_set(0, "end")
         for item in selection:
             self.converts.selection_clear(item)
+
 
     def list_possible(self, event=None):
         self.set_btn_state(self.apply_certain, "disabled")
@@ -595,8 +628,10 @@ class Main(tk.Tk):
                 self.possible.itemconfig(i, bg=lb_colours[1])
         self.saved_word_entered = string_entered
 
+
     def set_can_apply(self, value):
         self.can_apply_certain = value
+
         
     def find_matches(self, text, word): # Find matches of word to words in the text
         result=[]
@@ -618,6 +653,7 @@ class Main(tk.Tk):
                     result.append(cur_slice)
         return sorted(result) # Makes it easier to navigate
 
+
     def set_mark(self, index, colour_index):
         if colour_index == "invert":
             colour_index = 1-self.marked[index]
@@ -625,21 +661,25 @@ class Main(tk.Tk):
         self.converts.itemconfig(index, bg=lb_colours[colour_index])
         self.show_permutations()
 
+
     def toggle_marked(self):
         for sel in self.converts.curselection():
 ##5            print(alphabet[sel])
             self.set_mark(sel, "invert")
         self.converts.selection_clear(0, "end")
         print(self.marked)
+
     
     def select_all(self):
         self.converts.selection_set(0, "end")
+
     
     def create_popup(self, event, widget):
         try:
             widget.tk_popup(event.x_root, event.y_root, 0)
         finally:
             widget.grab_release()
+
 
     def match_finder(self, *args):
         try:
@@ -653,6 +693,7 @@ class Main(tk.Tk):
         except Exception as error: # Invalid regex
             self.ctrlf.config(fg="red")
 ##            print(error)
+
         
     def highlight_words(self, widget, word): # Find all points to highlight and highlight them
         widget.tag_delete("selected")
@@ -662,9 +703,11 @@ class Main(tk.Tk):
         for pos in positions:
             self.highlight(widget, *pos)
         self.match_num.config(text="Matches: "+str(len(positions)))
+
         
     def highlight(self, widget, index1="1.0", index2="1.0"): # Highlight between two points
         widget.tag_add("selected", index1, index2)
+
         
     def on_possible_select(self, event): # Activate when listbox item selected
         print("before:", self.marked)
@@ -704,6 +747,7 @@ class Main(tk.Tk):
         self.update_conversions()
         print("after:", self.marked)
 
+
     def on_conversion_select(self, event):
         return
         widget=event.widget
@@ -711,17 +755,20 @@ class Main(tk.Tk):
         value=widget.get(index)
         print(index, value)
         self.letter_var1.set(value[0])
+
             
     def decrypt_current(self):
         self.set_text(self.encipher(get(self.enter)), self.answer)
         self.enter.tag_delete("selected")
         self.answer.tag_delete("selected")
         self.set_order_lbl()
+
     
     def set_letters(self, arr, listbox):
         listbox.delete(0, "end")
         for x in arr:
             listbox.insert("end", x)
+
 
     def set_text(self, value, widget):
         is_disabled = widget.cget("state") == "disabled"
@@ -732,11 +779,14 @@ class Main(tk.Tk):
         if is_disabled:
             widget.config(state = "disabled")
 
+
     def error(self, text):
         self.set_text(text, self.error_log)
+
     
     def set_order_lbl(self):
         self.order_lbl.config(text=add_spaces(order_rating(self.changed)))
+
 
     def set_change(self, plain_txt):
         self.marked = [0]*26
@@ -751,26 +801,31 @@ class Main(tk.Tk):
         self.set_text(self.encipher(plain_txt), self.answer)
         self.set_letters(self.conversions(), self.converts)
 
+
     def return_letter1(self, event):
         if self.letter_var1.get() == "":
             return
 ##        print("enter")
         self.letter_entry2.focus()
 
+
     def return_letter2(self, event):
         if self.letter_var2.get() == "":
             return
         self.switch_btn.invoke()
         self.letter_entry1.focus()
+
     
     def check_letter1(self, *args):
         self.letter_var1.set(set_to_letter(self.letter_var1.get()))
         if self.check_both():
             pass
 
+
     def check_letter2(self, *args):
         self.letter_var2.set(set_to_letter(self.letter_var2.get()))
         self.check_both()
+
 
     def check_both(self):
         vals=(self.letter_var1.get(), self.letter_var2.get())
@@ -780,14 +835,17 @@ class Main(tk.Tk):
         else:
             self.switch_btn.config(state="normal")
             return True
+
     
     def reset_changed(self):
         self.changed = list(alphabet)  # Has to swap letters, must me mutable, this is default if no letters are entered
         self.update_all()
+
     
     def find_from_answer_selection(self):
         print(self.decipher(self.answer.selection_get()))
         self.find_from_entry_selection(self.answer)
+
 
     def find_from_entry_selection(self, widget=None):
         if widget is None:
@@ -825,6 +883,7 @@ class Main(tk.Tk):
         self.word_search.set(selected)
         self.set_letters(matching_words, self.possible)
 
+
     def switch(self, char1, char2, uses_custom_marking=False): # Switch two letters in changed
         char2_index = self.changed.index(char2)
         self.changed[self.changed.index(char1)] = self.changed[self.changed.index(char2)]
@@ -837,6 +896,7 @@ class Main(tk.Tk):
             print(char1, char2)
             self.marked[self.changed.index(char2)] = 1
             self.update_marked()
+
 
 class ActionStack:
     def __init__(self, parent):
