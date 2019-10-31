@@ -6,6 +6,8 @@
 # tomato
 # 421053
 # The tomato is a plant in the nightshade family
+# 1111111111
+# ARESA SXOST HEYLO IIAIE XPENG DLLTA HTFAX TENHM WX, kw = potato
 
 
 import tkinter as tk
@@ -16,14 +18,16 @@ BG = "white"
 FONT = "consolas"
 FSIZE = 15
 
-
 def style(size=FSIZE):
     kwargs = {"fg": FG, "bg": BG}
     if size != 0:
         kwargs["font"] = (FONT, size)
     return kwargs
 
-
+def rotate_columns(columns):
+    new = []
+    for i in range(len(columns[0])):
+        new.append("".join([column[i] for column in columns]))
 def clear_weight(frame):
     columns, rows = frame.grid_size()
     for c in range(columns):
@@ -41,7 +45,8 @@ class App(tk.Tk):
         self.configure(bg=BG)
 
         # Widgets
-        st_kwargs = {"width":60, "height":10, "spacing2":10, **style()}
+        st_kwargs = {"width":60, "height":10, "spacing2":10}
+        st_kwargs.update(style())
         self.enter = tkst.ScrolledText(self, **st_kwargs)
         self.output = tkst.ScrolledText(self, **st_kwargs)
 
@@ -61,7 +66,7 @@ class App(tk.Tk):
         for r in range(2):
             tk.Button(
                 self.under_enter_frame, text="Create Key",
-                **style(13), command=btn_cmds[r]).grid(row=r, column=2)
+                command=btn_cmds[r], **style(13)).grid(row=r, column=2)
         self.key_display = tk.Label(self.under_enter_frame, **style(15))
         self.set_key((0,))
         btn_strings = ("encipher", "decipher")
@@ -105,8 +110,9 @@ class App(tk.Tk):
         self.output.bind("<Key>", lambda event: "break")
 
         # Testing
-        self.enter.insert(0.0, "The tomato is a plant in the nightshade family")
-        self.key_entry.insert(0, "tomato")
+        self.enter.insert(0.0, "ARESA SXOST HEYLO IIAIE XPENG DLLTA HTFAX TENHM WX")
+        self.key_entry.insert(0, "314052")
+        self.set_key_from_string()
 
         self.mainloop()
 
@@ -126,12 +132,6 @@ class App(tk.Tk):
         self.set_key(list(range(self.column_amount.get())))
 
     def set_key_from_string(self):
-        # enumerated = tuple(enumerate(self.key_entry.get()))
-        # print(enumerated)
-        # ordered = sorted(enumerated, key=lambda el: el[1])
-        # print(ordered)
-        # nums = [el[0] for el in ordered]
-        # print(nums)
         string = self.key_entry.get()
         ordered = sorted(string)
         new_key = []
@@ -152,30 +152,32 @@ class App(tk.Tk):
         text = self.enter.get("1.0", "end").replace("\n", "").replace(" ", "")
         fill_len = (columns - (len(text) % columns)) % columns
         text += "X" * fill_len
-        print(mode)
+        # print(mode)
         letters = [[] for _ in range(columns)]
         reordered_letters = letters[:]
         for c in range(columns):
             for r in range(c, len(text), columns):
                 letters[c].append(text[r])
-        print(letters)
+        # print(letters)
         if mode == "decipher":
-
-            for c in range(len(self.key)):
-                reordered_letters[c] = letters[self.key[c]]
-            self.columns = reordered_letters
+            print(text)
+            self.columns = []
+            column_length = len(text) // len(key)
+            print(column_length)
+            for i in range(0, len(text), column_length):
+                self.columns.append(text[i: i + column_length])
         elif mode == "encipher":
             self.columns = letters
         else:
             raise
 
-        self.display_grid()   ###################
+        self.display_grid(mode)   ###################
 
-    def display_grid(self):
+    def display_grid(self, mode):
         # Delete current
         for widget in self.grid_frame.winfo_children():
             widget.destroy()
-        print("Columns:", self.columns)
+        # print("Columns:", self.columns)
         self.display_top_frames()   ###################
 
         inverted_key = invert_key(self.key)
@@ -190,14 +192,20 @@ class App(tk.Tk):
         clear_weight(self.grid_frame)
         for column in range(len(self.columns)):
             self.grid_frame.grid_columnconfigure(column, weight=1)
+        if mode == "decipher":
+            print(rotate_columns(["".join(self.columns[n]).upper() for n in inverted_key]))
+        else:
+            print(self.columns)
+            print(["".join(self.columns[n]).upper() for n in inverted_key])
         self.write_output(*["".join(self.columns[n]).upper() for n in inverted_key])
+            
 
     def display_top_frames(self):
         for column in range(len(self.columns)):
             MoveBtn(self, self.key[column], master=self.grid_frame).grid(row=0, column=column)   ###################
 
     def write_output(self, *values, end="\n"):
-        print(values)
+        # print(values)
         to_write = end.join(values)
         self.output.delete("1.0", "end")
         self.output.insert("end", to_write)
@@ -214,10 +222,12 @@ class MoveBtn(tk.Frame):
             tk.Button(self, text=string[c], command=lambda c=c: self.move((-1) ** (1 - c)), **style(9)).grid(row=1, column=c)  ###################
 
     def move(self, offset):
-        print(offset)
-        new_pos = (self.index + offset) % len(self.parent.key)
-        print("Switching", self.index, new_pos)
-        self.parent.key[self.index], self.parent.key[new_pos] = self.parent.key[new_pos], self.parent.key[self.index]
+        # print(offset)
+        current_pos = self.parent.key.index(self.index)
+        new_pos = (current_pos + offset) % len(self.parent.key)
+        # print("Index of {} in key: {}".format(self.index, self.parent.key.index(self.index)))
+        # print("Switching", self.index, new_pos)
+        self.parent.key[current_pos], self.parent.key[new_pos] = self.parent.key[new_pos], self.parent.key[current_pos]
         self.parent.display_key()
         self.parent.update_grid(key=self.parent.key)
 
