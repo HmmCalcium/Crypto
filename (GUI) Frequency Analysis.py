@@ -608,8 +608,8 @@ class Main(tk.Tk):
                 if letter in marked_letters:
 ##                    print("Marked Letter")
 ##                    print(letter)
-                    expected_letter=self.changed[alphabet.index(letter)]
-                    actual_letter=string_entered[x]
+                    expected_letter=self.changed[alphabet.index(letter)].lower()
+                    actual_letter=string_entered[x].lower()
                     
 ##                    print(letter, "in self.marked")
                     if expected_letter != actual_letter:

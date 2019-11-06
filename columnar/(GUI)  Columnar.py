@@ -12,11 +12,18 @@
 
 import tkinter as tk
 import tkinter.scrolledtext as tkst
+import os
+import subprocess
+import sys
 
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 FG = "black"
 BG = "white"
 FONT = "consolas"
-FSIZE = 15
+FSIZE = 13
+
+def plaintext(text):
+    return "".join([char for char in text.upper() if char in ALPHABET])
 
 def style(size=FSIZE):
     kwargs = {"fg": FG, "bg": BG}
@@ -51,12 +58,13 @@ class App(tk.Tk):
         super().__init__()
         self.configure(bg=BG)
 
+        self.mode = "encipher"
+
         # Widgets
         st_kwargs = {"width":60, "height":10, "spacing2":10}
         st_kwargs.update(style())
         self.enter = tkst.ScrolledText(self, **st_kwargs)
         self.output = tkst.ScrolledText(self, **st_kwargs)
-
         self.under_enter_frame = tk.Frame(self, bg=BG)
         lbl_strings = ("Create range length n: ", "Enter string as key: ")
         for r in range(2):
@@ -86,26 +94,41 @@ class App(tk.Tk):
         column_sep_font_size = 12
         tk.Label(options_frame, text="Answer column separator: '", **style(column_sep_font_size)).grid(row=0, column=0)
         self.sep_entry = tk.Entry(options_frame, width=3, **style(column_sep_font_size))
+        self.sep_entry.insert("end", "\\n")
         tk.Label(options_frame, text="'", **style(column_sep_font_size)).grid(row=0, column=2, sticky="W")
-        self.scroll_canvas = tk.Canvas(width=500, bg=BG)
+        right_frame = tk.Frame(self, bg=BG)
+        self.scroll_canvas = tk.Canvas(right_frame, width=500, bg=BG)
         self.grid_frame = tk.Frame(self, bg=BG)
         self.scrollbar = tk.Scrollbar(
-            self, orient="horizontal", command=self.scroll_canvas.xview())
+            right_frame, orient="vertical", command=self.scroll_canvas.xview())
         self.scroll_canvas.configure(xscrollcommand=self.scrollbar.set)
+        code_frame = tk.Frame(right_frame, bg=BG)
+        tk.Label(code_frame, text="File List:", **style(FSIZE)).grid(row=0, column=0, sticky="NESW")
+        tk.Label(code_frame, text="Code:", **style(FSIZE)).grid(row=0, column=1, columnspan=3, sticky="NESW")
+        self.file_list = tk.Listbox(code_frame, **style(8))
+        self.code_entry = tkst.ScrolledText(code_frame, width=50, height=20, **style(10))
+        btn_text = ("Save", "Chdir")
+        btn_cmd = ()
+        self.run_btn = tk.Button(code_frame, text="Run", state="disabled", command=self.run_code, **style(11))
+        for c in range(2):
+            tk.Button(code_frame, text=btn_text[c], **style(11)).grid(row=2, column=c + 2, sticky="NESW")
 
         # Grid
-        self.enter.grid(row=0, column=0)
-        self.output.grid(row=3, column=0)
-
-        self.under_enter_frame.grid(row=1, column=0, sticky="W", padx=50)
+        self.enter.grid(row=0, column=0, sticky="EW")
+        self.output.grid(row=3, column=0, sticky="EW")
+        self.under_enter_frame.grid(row=1, column=0, sticky="W", padx=10)
         self.skip_slider.grid(row=0, column=1)
         self.key_entry.grid(row=1, column=1)
         self.key_display.grid(row=0, column=3, rowspan=2, sticky="NS")
-
         self.sep_entry.grid(row=0, column=1, sticky="W")
         options_frame.grid(row=2, column=0)
-        
-        self.scroll_canvas.grid(row=0, column=1, rowspan=4, sticky="NESW")
+        right_frame.grid(row=0, column=1, rowspan=4)
+        self.scroll_canvas.grid(row=0, column=0, sticky="NS", pady=20)
+        self.scrollbar.grid(row=0, column=1, sticky="NS", pady=20)
+        code_frame.grid(row=1, column=0, sticky = "NESW")
+        self.file_list.grid(row=1, column=0, rowspan=2, sticky="NS")
+        self.code_entry.grid(row=1, column=1, columnspan=3)
+        self.run_btn.grid(row=2, column=1, sticky="NESW")
 
         self.update_idletasks()
         width = self.scroll_canvas.winfo_width()
@@ -122,13 +145,45 @@ class App(tk.Tk):
         # Binding
         self.grid_frame.bind("<Configure>", self.on_frame_config)
         self.output.bind("<Key>", on_change_answer)
+        self.file_list.bind("<<ListboxSelect>>", self.load_code)
 
-        # Testing
+        # Initialise
+        self.directory = os.path.dirname(__file__) + "\\code"
+        os.chdir(self.directory)
+        self.initiate_test()
+        self.new_directory()
+
+        self.mainloop()
+
+    def new_directory(self, directory=None):
+        if directory is not None:
+            os.chdir(directory)
+        print(os.listdir())
+        for filename in [name for name in os.listdir() if not name.startswith("_")]:
+            self.file_list.insert("end", filename)
+
+    def load_code(self, event):
+        lbox = event.widget
+        selection = lbox.curselection()
+        if len(selection) == 0:
+            return
+        selection = lbox.get(selection[0])
+        self.code_file = CodeFile(selection, self)
+        self.run_btn.config(state="normal")
+
+    def run_code(self):
+        self.code_file.run()
+        print(os.getcwd())
+        file = open("..\\output.txt", "r")
+        text = file.read()
+        file.close()
+        self.output.delete("1.0", "end")
+        self.output.insert("end", text)
+
+    def initiate_test(self):
         self.enter.insert(0.0, "ARESA SXOST HEYLO IIAIE XPENG DLLTA HTFAX TENHM WX")
         self.key_entry.insert(0, "314052")
         self.set_key_from_string()
-
-        self.mainloop()
 
     def on_frame_config(self, event):
         self.scroll_canvas.configure(
@@ -155,10 +210,13 @@ class App(tk.Tk):
             new_key.append(index)
         self.set_key(new_key)
 
-    def update_grid(self, event=None, key=None, mode="encipher"):
+    def update_grid(self, event=None, key=None, mode=None):
+        if mode is None:
+            mode = self.mode
+        self.mode = mode
         assert key is not None
         columns = len(key)
-        text = self.enter.get("1.0", "end").replace("\n", "").replace(" ", "")
+        text = self.text
         fill_len = (columns - (len(text) % columns)) % columns
         text += "X" * fill_len
         letters = [[] for _ in range(columns)]
@@ -166,22 +224,20 @@ class App(tk.Tk):
         for c in range(columns):
             for r in range(c, len(text), columns):
                 letters[c].append(text[r])
-        if mode == "decipher":
-            print(text)
+        if self.mode == "decipher":
             self.columns = []
             column_length = len(text) // len(key)
-            print(column_length)
             for i in range(0, len(text), column_length):
                 self.columns.append(text[i: i + column_length])
-        elif mode == "encipher":
+        elif self.mode == "encipher":
             self.columns = letters
         else:
             raise
 
-        self.display_grid(mode)   ###################
+        self.display_grid(self.mode)   ###################
 
     def display_grid(self, mode):
-        if mode == "decipher":
+        if self.mode == "decipher":
             def get_nth_column(column):
                 return self.columns[self.key[column]]
         else:
@@ -199,22 +255,18 @@ class App(tk.Tk):
             # inverted_key_value = inverted_key[column]
             this_column = get_nth_column(column)
             for row in range(len(self.columns[column])):
-                text = this_column[row].upper()
+                text = this_column[row]
                 tk.Label(
                     self.grid_frame, text=text, **style()
                     ).grid(row=row + 2, column=column)
         clear_weight(self.grid_frame)
         for column in range(len(self.columns)):
             self.grid_frame.grid_columnconfigure(column, weight=1)
-        if mode == "decipher":
-            to_write = rotate_columns(["".join(self.columns[self.key[n]]).upper() for n in range(len(self.columns))])
+        if self.mode == "decipher":
+            to_write = rotate_columns(["".join(self.columns[self.key[n]]) for n in range(len(self.columns))])
         else:
-            print(self.columns)
-            print(["".join(self.columns[n]).upper() for n in inverted_key])
-            to_write = ["".join(self.columns[n]).upper() for n in inverted_key]
-        print(to_write)
-        column_sep = self.sep_entry.get().replace("\\n", "\n").replace("\\t", "\t")
-        print("sep:", column_sep, column_sep == "\\n")
+            to_write = ["".join(self.columns[n]) for n in inverted_key]
+        column_sep = self.column_sep
         self.write_output(column_sep.join(to_write))
             
 
@@ -228,6 +280,14 @@ class App(tk.Tk):
         self.output.delete("1.0", "end")
         self.output.insert("end", to_write)
 
+    @property
+    def column_sep(self):
+        return self.sep_entry.get().replace("\\n", "\n").replace("\\t", "\t")
+    
+    @property
+    def text(self):
+        return plaintext(self.enter.get("1.0", "end").replace("\n", ""))
+        
 class MoveBtn(tk.Frame):
     # ◀▶
     def __init__(self, parent, index, master=None):
@@ -249,6 +309,39 @@ class MoveBtn(tk.Frame):
         self.parent.display_key()
         self.parent.update_grid(key=self.parent.key)
 
+
+class CodeFile:
+    def __init__(self, name, parent):
+        self.parent = parent
+        self.name = name
+        self.path = os.path.dirname(__file__) + "\\code\\"  + name
+        self.load()
+
+    def save(self):
+        self.code = self.parent.code_entry.get("1.0", "end")
+        print(self.code)
+        with open(self.path, "w") as file:
+            file.write(self.code)
+
+    def load(self):
+        self.code = open(self.path, "r").read()
+        self.parent.code_entry.delete("1.0", "end")
+        self.parent.code_entry.insert("end", self.code)
+    
+    def run(self):
+        args = (self.parent.text, self.parent.sep_entry.get(), self.parent.key)
+        command = 'py "{}"'.format(self.path) + (' "{}"' * len(args)).format(*args)
+        print(command)
+        os.system(command)
+        
+
+class CodeRun:
+    def create_file(code, name):
+        ...
+
+for method in dir(CodeRun):
+    if not (method.startswith("__") and method.endswith("__")):
+        setattr(CodeRun, method, staticmethod(getattr(CodeRun, method)))
 
 if __name__ == "__main__":
     app = App()
