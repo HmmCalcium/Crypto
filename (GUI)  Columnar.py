@@ -28,6 +28,8 @@ def rotate_columns(columns):
     new = []
     for i in range(len(columns[0])):
         new.append("".join([column[i] for column in columns]))
+    return new
+
 def clear_weight(frame):
     columns, rows = frame.grid_size()
     for c in range(columns):
@@ -38,6 +40,11 @@ def clear_weight(frame):
 def invert_key(key):
     return [key.index(c) for c in range(len(key))]
 
+def on_change_answer(event):
+    print(event.keysym)
+    for key in ("BackSpace",):
+        if key == event.keysym:
+            return "break"
 
 class App(tk.Tk):
     def __init__(self):
@@ -75,8 +82,12 @@ class App(tk.Tk):
                 self.under_enter_frame, text=btn_strings[r],
                 command=lambda r=r: self.update_grid(key=self.key, mode=btn_strings[r]), **style(15)).grid(
                     row=r, column=3)
-
-        self.scroll_canvas = tk.Canvas(width=600, bg=BG)
+        options_frame = tk.Frame(self, bg=BG)
+        column_sep_font_size = 12
+        tk.Label(options_frame, text="Answer column separator: '", **style(column_sep_font_size)).grid(row=0, column=0)
+        self.sep_entry = tk.Entry(options_frame, width=3, **style(column_sep_font_size))
+        tk.Label(options_frame, text="'", **style(column_sep_font_size)).grid(row=0, column=2, sticky="W")
+        self.scroll_canvas = tk.Canvas(width=500, bg=BG)
         self.grid_frame = tk.Frame(self, bg=BG)
         self.scrollbar = tk.Scrollbar(
             self, orient="horizontal", command=self.scroll_canvas.xview())
@@ -84,14 +95,17 @@ class App(tk.Tk):
 
         # Grid
         self.enter.grid(row=0, column=0)
-        self.output.grid(row=2, column=0)
+        self.output.grid(row=3, column=0)
 
         self.under_enter_frame.grid(row=1, column=0, sticky="W", padx=50)
         self.skip_slider.grid(row=0, column=1)
         self.key_entry.grid(row=1, column=1)
         self.key_display.grid(row=0, column=3, rowspan=2, sticky="NS")
 
-        self.scroll_canvas.grid(row=0, column=1, rowspan=3, sticky="NESW")
+        self.sep_entry.grid(row=0, column=1, sticky="W")
+        options_frame.grid(row=2, column=0)
+        
+        self.scroll_canvas.grid(row=0, column=1, rowspan=4, sticky="NESW")
 
         self.update_idletasks()
         width = self.scroll_canvas.winfo_width()
@@ -107,7 +121,7 @@ class App(tk.Tk):
 
         # Binding
         self.grid_frame.bind("<Configure>", self.on_frame_config)
-        self.output.bind("<Key>", lambda event: "break")
+        self.output.bind("<Key>", on_change_answer)
 
         # Testing
         self.enter.insert(0.0, "ARESA SXOST HEYLO IIAIE XPENG DLLTA HTFAX TENHM WX")
@@ -141,24 +155,17 @@ class App(tk.Tk):
             new_key.append(index)
         self.set_key(new_key)
 
-    def reordered_columns(self):
-        new = []
-        print(self.key)
-        print(self.columns)
-
     def update_grid(self, event=None, key=None, mode="encipher"):
         assert key is not None
         columns = len(key)
         text = self.enter.get("1.0", "end").replace("\n", "").replace(" ", "")
         fill_len = (columns - (len(text) % columns)) % columns
         text += "X" * fill_len
-        # print(mode)
         letters = [[] for _ in range(columns)]
         reordered_letters = letters[:]
         for c in range(columns):
             for r in range(c, len(text), columns):
                 letters[c].append(text[r])
-        # print(letters)
         if mode == "decipher":
             print(text)
             self.columns = []
@@ -174,6 +181,13 @@ class App(tk.Tk):
         self.display_grid(mode)   ###################
 
     def display_grid(self, mode):
+        if mode == "decipher":
+            def get_nth_column(column):
+                return self.columns[self.key[column]]
+        else:
+            def get_nth_column(column):
+                return self.columns[column]
+        
         # Delete current
         for widget in self.grid_frame.winfo_children():
             widget.destroy()
@@ -183,7 +197,7 @@ class App(tk.Tk):
         inverted_key = invert_key(self.key)
         for column in range(len(self.columns)):
             # inverted_key_value = inverted_key[column]
-            this_column = self.columns[column]
+            this_column = get_nth_column(column)
             for row in range(len(self.columns[column])):
                 text = this_column[row].upper()
                 tk.Label(
@@ -193,11 +207,15 @@ class App(tk.Tk):
         for column in range(len(self.columns)):
             self.grid_frame.grid_columnconfigure(column, weight=1)
         if mode == "decipher":
-            print(rotate_columns(["".join(self.columns[n]).upper() for n in inverted_key]))
+            to_write = rotate_columns(["".join(self.columns[self.key[n]]).upper() for n in range(len(self.columns))])
         else:
             print(self.columns)
             print(["".join(self.columns[n]).upper() for n in inverted_key])
-        self.write_output(*["".join(self.columns[n]).upper() for n in inverted_key])
+            to_write = ["".join(self.columns[n]).upper() for n in inverted_key]
+        print(to_write)
+        column_sep = self.sep_entry.get().replace("\\n", "\n").replace("\\t", "\t")
+        print("sep:", column_sep, column_sep == "\\n")
+        self.write_output(column_sep.join(to_write))
             
 
     def display_top_frames(self):
