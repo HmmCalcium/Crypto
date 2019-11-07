@@ -184,6 +184,9 @@ def amount(string, group_size=1): # Dictionary with numbers of each letter
     return amounts            
 
 
+def simplify_text(string):
+    return remove_duplicates(keep(string.lower(), alphabet))
+
 def _assign(arr, group_size=1): # Dictionary with each letter's frequency
     new=[""]*26
     for i in range(26):
@@ -732,10 +735,10 @@ class Main(tk.Tk):
         index = widget.curselection()
         if len(index) == 1:
 ##            self.set_text(msg, self.error_log)
-            self.saved_string_selected = widget.get(index).lower()
-            found = remove_duplicates(self.saved_string_selected)
+            self.saved_string_selected = simplify_text(widget.get(index).lower())
+            found = self.saved_string_selected[:]
             enciphered_found = self.encipher(found)
-            word_entered = remove_duplicates(self.word_search.get())
+            word_entered = simplify_text(self.word_search.get())
             print("1:", found, "2:", word_entered, "3:", enciphered_found)
 ##            for i in range(len(found)):
 ##                if found[i] in alphabet:

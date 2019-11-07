@@ -22,6 +22,12 @@ BG = "white"
 FONT = "consolas"
 FSIZE = 13
 
+def key_from_string(string):
+	enumerated = enumerate(string)
+	ordered = sorted(enumerated, key=lambda el: el[1])
+	numbers = [el[0] for el in ordered]
+	return numbers
+
 def plaintext(text):
     return "".join([char for char in text.upper() if char in ALPHABET])
 
@@ -202,13 +208,9 @@ class App(tk.Tk):
 
     def set_key_from_string(self):
         string = self.key_entry.get()
-        ordered = sorted(string)
-        new_key = []
-        for i in range(len(string)):
-            index = ordered.index(string[i])
-            index += new_key.count(index)
-            new_key.append(index)
+        new_key = key_from_string(string)
         self.set_key(new_key)
+        print(new_key)
 
     def update_grid(self, event=None, key=None, mode=None):
         if mode is None:
