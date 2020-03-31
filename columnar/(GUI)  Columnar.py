@@ -63,6 +63,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.configure(bg=BG)
+        self.title("Columnar Transposition by Alex Scorza")
 
         self.mode = "encipher"
 

@@ -1,4 +1,4 @@
-#Alex Scorza September 2018
+# Alex Scorza September 2018
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 from math import *
 
@@ -17,4 +17,3 @@ while 1:
             answer += x
     print(answer)
     print("\n"*2)
-        
